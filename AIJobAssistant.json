@@ -1,0 +1,1316 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -336,
+        -64
+      ],
+      "id": "bc0f476a-7862-4c86-9b8f-66a3a3bec41d",
+      "name": "Workflow execution"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1Xw-myzG450HohGFgKOiPLrIvfo_sE6jk4XesgWWiTfM",
+          "mode": "list",
+          "cachedResultName": "JobLinks",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Xw-myzG450HohGFgKOiPLrIvfo_sE6jk4XesgWWiTfM/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Xw-myzG450HohGFgKOiPLrIvfo_sE6jk4XesgWWiTfM/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        -128,
+        -64
+      ],
+      "id": "44dd08d5-23f6-4f75-8041-a84695d4ab3e",
+      "name": "Get Rows",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "oHgXEYk3Wbkvwu1Q",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## AI Job Application Assistant\nThis combines web scraping, AI prompt engineering, and document automation",
+        "width": 352
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -320,
+        -256
+      ],
+      "typeVersion": 1,
+      "id": "1e31291d-9e60-4e9d-983b-41e0dad0afb9",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "url": "=https://jsearch.p.rapidapi.com/search?query={{$json[\"Jobname\"]}}&page=1&num_pages=1\n",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-RapidAPI-Key",
+              "value": "07957396ecmsh9d0318dcd39e85ep123cd4jsn713853f3e544"
+            },
+            {
+              "name": "X-RapidAPI-Host",
+              "value": "jsearch.p.rapidapi.com"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        80,
+        -64
+      ],
+      "id": "ce81196d-0134-438f-8ca9-d67256a65cd9",
+      "name": "Fetch Job from JSearch"
+    },
+    {
+      "parameters": {
+        "jsCode": "const results = [];\nfor (const item of $input.all()) {\n  results.push({\n    json: {\n      title: item.json.data[0].job_title,\n      company: item.json.data[0].employer_name,\n      description: item.json.data[0].job_description\n    }\n  });\n}\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        288,
+        -64
+      ],
+      "id": "94cf9f56-e5b2-4897-bb3f-bdda581ce4e9",
+      "name": "Function"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "{\n  \"Authorization\": \"Bearer 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\",\n  \"Content-Type\": \"application/json\"\n}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n  {\n    \"model\": \"openai/gpt-oss-20b:free\",\n    \"messages\": [\n      {\n        \"role\": \"system\",\n        \"content\": \"You are an AI assistant that helps job seekers analyze job postings and generate tailored applications.\"\n      },\n      {\n        \"role\": \"user\",\n        \"content\": `Job Title: ${$json.title}\\nCompany: ${$json.company}\\nDescription: ${$json.description}\\n\\n1. Summarize the role in 3-4 sentences.\\n2. List the key required skills.\\n3. Write a tailored cover letter for a junior AI engineer.`\n      }\n    ]\n  }\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        496,
+        -64
+      ],
+      "id": "2b14b118-ed39-48d5-ad32-b525fb3ba27b",
+      "name": "OPENAI Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "const content = $json.choices[0].message.content;\n\n// Split into sections using regex or simple splitting\nconst summaryMatch = content.match(/\\*\\*1\\. Summary.*?\\*\\*(.*?)\\*\\*2\\./s);\nconst skillsMatch = content.match(/\\*\\*2\\. Key Required Skills.*?\\*\\*(.*?)\\*\\*3\\./s);\nconst coverLetterMatch = content.match(/\\*\\*3\\. Tailored Cover Letter.*?\\*\\*\\s+```txt([\\s\\S]*?)```/);\n\nreturn [\n  {\n    json: {\n      summary: summaryMatch ? summaryMatch[1].trim() : \"\",\n      skills: skillsMatch ? skillsMatch[1].trim() : \"\",\n      coverLetter: coverLetterMatch ? coverLetterMatch[1].trim() : \"\"\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        704,
+        -64
+      ],
+      "id": "3cd4a879-ec99-4d74-8579-0c7720fece34",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1Xw-myzG450HohGFgKOiPLrIvfo_sE6jk4XesgWWiTfM",
+          "mode": "list",
+          "cachedResultName": "JobLinks",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Xw-myzG450HohGFgKOiPLrIvfo_sE6jk4XesgWWiTfM/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Xw-myzG450HohGFgKOiPLrIvfo_sE6jk4XesgWWiTfM/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Jobname",
+              "displayName": "Jobname",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "link",
+              "displayName": "link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "summary",
+              "displayName": "summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "skills",
+              "displayName": "skills",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "coverLetter",
+              "displayName": "coverLetter",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        912,
+        -64
+      ],
+      "id": "ea2d98a3-e9a6-48f7-ada9-c29cce556126",
+      "name": "Save Results",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "oHgXEYk3Wbkvwu1Q",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "Get Rows": [
+      {
+        "json": {
+          "row_number": 2,
+          "Jobname": "Junior AI engineer",
+          "link": "https://pk.indeed.com/viewjob?jk=d66e4d1b23b6e051&from=shareddesktop_copy"
+        }
+      }
+    ],
+    "Fetch Job from JSearch": [
+      {
+        "json": {
+          "status": "OK",
+          "request_id": "7ae0d99e-e30c-45c4-a5d3-f01685831e14",
+          "parameters": {
+            "query": "Junior AI engineer",
+            "page": 1,
+            "num_pages": 1,
+            "country": "us",
+            "language": "en"
+          },
+          "data": [
+            {
+              "job_id": "vQJtA3FNUQYjsinuAAAAAA==",
+              "job_title": "AI/Machine Learning Engineer, Junior - FAA",
+              "employer_name": "COBEC INC",
+              "employer_logo": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR69xdOVwCKlcgF1JF-BK55f_VqacU8rn-CWtF1&s=0",
+              "employer_website": null,
+              "job_publisher": "Indeed",
+              "job_employment_type": "Full-time",
+              "job_employment_types": [
+                "FULLTIME"
+              ],
+              "job_apply_link": "https://www.indeed.com/viewjob?jk=575b9189332dd916&utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+              "job_apply_is_direct": true,
+              "apply_options": [
+                {
+                  "publisher": "Indeed",
+                  "apply_link": "https://www.indeed.com/viewjob?jk=575b9189332dd916&utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+                  "is_direct": true
+                },
+                {
+                  "publisher": "Glassdoor",
+                  "apply_link": "https://www.glassdoor.com/job-listing/ai-machine-learning-engineer-junior-faa-cobec-inc-JV_IC1138213_KO0,39_KE40,49.htm?jl=1009822326829&utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+                  "is_direct": true
+                },
+                {
+                  "publisher": "LazyApply",
+                  "apply_link": "https://lazyapply.com/jobpreview/5344766954?utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+                  "is_direct": false
+                },
+                {
+                  "publisher": "Adzuna",
+                  "apply_link": "https://www.adzuna.com/details/5344766954?utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+                  "is_direct": false
+                },
+                {
+                  "publisher": "Jobilize",
+                  "apply_link": "https://www.jobilize.com/job/us-ai-machine-learning-engineer-junior-faa-cobec-consulting-hiring?utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+                  "is_direct": false
+                },
+                {
+                  "publisher": "Jobrapido",
+                  "apply_link": "https://us.jobrapido.com/jobpreview/4176035008714113024?utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+                  "is_direct": false
+                }
+              ],
+              "job_description": "Position: AI/Machine Learning Engineer, Junior - FAA\n\nLocation: Cobec site/Remote Site\n\nRemote Work Option: Yes\n\nFunction: Full Stack Software Developer\n\nLocation: Remote Site/Cobec Site - DC\n\nRemote Work Option: Yes\n\nSalary Range: $80- $130k\n\nSecurity Requirements\n\nMust be a US citizen or a legal resident for three of the past five years. Public Trust cannot be granted without meeting the residency requirement.\n\nMust meet eligibility requirements for a US Public Trust security clearance (moderate risk), including a soft credit check and criminal background check. Please refer to the criteria listed in 5 CFR 731.202 to understand the Public Trust suitability requirements.\n\nCulture\n\nCobec is consistently breaking the current mold for delivering services to our government clients. What does that mean? That means believing in a “people first” mentality, building high performance teams and empowering people to make informed decisions without going through a large bureaucratic system. Cobec values the well-being of employees and bestows tremendous trust in those people to negotiate work and non-work obligations. Cobec is where someone can bring their whole self to work and be themselves, never having to compromise their authenticity just to fit in. Lastly, we believe in the work we do, the goals and missions of our customers and the interpersonal relationships we have with clients, stakeholders and our people.\n\nValues and Expectations\n\nThe successful candidate for this role embodies the same values as Cobec. We realize experience is important, however; Cobec believes a person’s abilities and skills that align with our values (Relationships, Leadership, Passion, Accountability, Integrity, Innovation, Quality, Teamwork, Diversity, Commitment, & Respect) are the most important drivers for success in this role.\n\nIn addition to exhibiting our values, a successful candidate for this role is expected to be a high performer, organized, dynamic, and have a positive attitude.\n\nJob Summary\n\nWe are seeking a highly skilled and motivated AI/ML Engineer in a Full Stack Engineering environment to join our growing team. This position will be responsible for developing data modeling and artificial intelligence solutions to integrate with our application suite providing support to the financial sector of the FAA (Federal Aviation Administration). The successful candidate will be a part of a development team with a focus on building scalable and intelligent solutions. The candidate will need to be able to collaborate with stakeholders, customers, and internal developers at multiple levels.\n\nRelevant Experience\n\nAt least 2+ years of experience creating artificial intelligence systems and algorithms for AI/ML development. The position requires 2+ years of involvement in software development and experience in collaborating on software development projects. The successful candidate must have at least 2+ years of experience with relational databases and SQL/PGSQL. FAA Experience is preferred but not required.\n\nEssential Job Functions\n\nThe following duties are normal for this position. The omission of specific statements of duties does not exclude them from this position if the work is similar, related, and/or a logical assignment for this position. Other duties may be required and assigned.\n• Design, develop, and deploy AI/ML models that integrate seamlessly with enterprise level software platforms.\n• Build and integrate AI-driven solutions into business processes and participate in the full software development lifecycle.\n• Collaborate with software engineers, data scientists, and systems architects to embed AI functionality into existing and new applications.\n• Ability to work and communicate with stakeholders and other developers to troubleshoot and improve existing solutions\n• Perform diagnostic tests and develop debugging procedures.\n• Documenting processes and maintaining software development with tools.\n• Experience with relational databases and structured data sets.\n• Experience with AWS - EC2, RDS, EBS, VPC is a plus\n• Experience with Business Case Analysis is a plus\n\nEducation Requirements\n\nBachelor’s degree required, preferably in Computer Science, Information Systems, Engineering, Science or Math.\n\nMaster’s degree is a plus and may count as additional years of experience.\n\nSkills Requirements\n• Attention to detail, strong time management skills\n• Intermediate proficiency in several software technologies areas:\n• In-depth knowledge of machine learning frameworks\n• Familiarity with data structures, data modeling, and software architecture\n• Familiarity with NodeJS, PL/PGSQL, Python, Angular, TypeScript\n• Visual Studio, or other integrated design environment (IDE) experience (VS Code, etc...)\n• Intermediate proficiency in Software Configuration Management techniques and tools (GIT, Bitbucket, etc...).\n• Able to work in a team of developers to build production quality applications.\n• Experience with Relational Databases and to include writing SQL/PGSQL\n\nEEO\n\nCobec, Inc. is an Equal Opportunity Employer. Employment decisions are made without regard to race, color, religion, sex, age, sexual orientation, gender identity, national origin, disability, veteran status or any other status protected by federal, state and local law.\n\nEEO is the Law",
+              "job_is_remote": true,
+              "job_posted_at": "24 days ago",
+              "job_posted_at_timestamp": 1753315200,
+              "job_posted_at_datetime_utc": "2025-07-24T00:00:00.000Z",
+              "job_location": "Washington, DC",
+              "job_city": "Washington",
+              "job_state": "District of Columbia",
+              "job_country": "US",
+              "job_latitude": 38.9071923,
+              "job_longitude": -77.0368707,
+              "job_benefits": null,
+              "job_google_link": "https://www.google.com/search?q=jobs&gl=us&hl=en&udm=8#vhid=vt%3D20/docid%3DvQJtA3FNUQYjsinuAAAAAA%3D%3D&vssid=jobs-detail-viewer",
+              "job_min_salary": 80000,
+              "job_max_salary": 130000,
+              "job_salary_period": "YEAR",
+              "job_highlights": {
+                "Qualifications": [
+                  "Must be a US citizen or a legal resident for three of the past five years",
+                  "Public Trust cannot be granted without meeting the residency requirement",
+                  "Must meet eligibility requirements for a US Public Trust security clearance (moderate risk), including a soft credit check and criminal background check",
+                  "Please refer to the criteria listed in 5 CFR 731.202 to understand the Public Trust suitability requirements",
+                  "We realize experience is important, however; Cobec believes a person’s abilities and skills that align with our values (Relationships, Leadership, Passion, Accountability, Integrity, Innovation, Quality, Teamwork, Diversity, Commitment, & Respect) are the most important drivers for success in this role",
+                  "In addition to exhibiting our values, a successful candidate for this role is expected to be a high performer, organized, dynamic, and have a positive attitude",
+                  "The candidate will need to be able to collaborate with stakeholders, customers, and internal developers at multiple levels",
+                  "At least 2+ years of experience creating artificial intelligence systems and algorithms for AI/ML development",
+                  "The position requires 2+ years of involvement in software development and experience in collaborating on software development projects",
+                  "The successful candidate must have at least 2+ years of experience with relational databases and SQL/PGSQL",
+                  "Experience with relational databases and structured data sets",
+                  "Bachelor’s degree required, preferably in Computer Science, Information Systems, Engineering, Science or Math",
+                  "Attention to detail, strong time management skills",
+                  "Intermediate proficiency in several software technologies areas:",
+                  "In-depth knowledge of machine learning frameworks",
+                  "Familiarity with data structures, data modeling, and software architecture",
+                  "Familiarity with NodeJS, PL/PGSQL, Python, Angular, TypeScript",
+                  "Visual Studio, or other integrated design environment (IDE) experience (VS Code, etc...)",
+                  "Intermediate proficiency in Software Configuration Management techniques and tools (GIT, Bitbucket, etc...)",
+                  "Able to work in a team of developers to build production quality applications",
+                  "Experience with Relational Databases and to include writing SQL/PGSQL"
+                ],
+                "Benefits": [
+                  "Salary Range: $80- $130k"
+                ],
+                "Responsibilities": [
+                  "This position will be responsible for developing data modeling and artificial intelligence solutions to integrate with our application suite providing support to the financial sector of the FAA (Federal Aviation Administration)",
+                  "The successful candidate will be a part of a development team with a focus on building scalable and intelligent solutions",
+                  "The omission of specific statements of duties does not exclude them from this position if the work is similar, related, and/or a logical assignment for this position",
+                  "Other duties may be required and assigned",
+                  "Design, develop, and deploy AI/ML models that integrate seamlessly with enterprise level software platforms",
+                  "Build and integrate AI-driven solutions into business processes and participate in the full software development lifecycle",
+                  "Collaborate with software engineers, data scientists, and systems architects to embed AI functionality into existing and new applications",
+                  "Ability to work and communicate with stakeholders and other developers to troubleshoot and improve existing solutions",
+                  "Perform diagnostic tests and develop debugging procedures",
+                  "Documenting processes and maintaining software development with tools"
+                ]
+              },
+              "job_onet_soc": "15111100",
+              "job_onet_job_zone": "5"
+            },
+            {
+              "job_id": "adDsPv9zGI5DofLyAAAAAA==",
+              "job_title": "Junior Artificial Intelligence (AI) / Machine Learning (ML) Engineer",
+              "employer_name": "Pingwind",
+              "employer_logo": null,
+              "employer_website": "https://www.pingwind.com",
+              "job_publisher": "Jooble",
+              "job_employment_type": "Full-time and Internship",
+              "job_employment_types": [
+                "FULLTIME",
+                "INTERN"
+              ],
+              "job_apply_link": "https://jooble.org/jdp/-5278996796047651640?utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+              "job_apply_is_direct": false,
+              "apply_options": [
+                {
+                  "publisher": "Jooble",
+                  "apply_link": "https://jooble.org/jdp/-5278996796047651640?utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+                  "is_direct": false
+                }
+              ],
+              "job_description": "Location: Hybrid (some travel to Washington, DC area)\n\nWork Type : Full-Time\n\nAbout PingWind\n\nPingWind is an SBA-certified Service-Disabled Veteran Owned Small Business (SDVOSB) delivering mission-critical technology solutions to federal government partners. We help clients secure information, modernize systems, and optimize performance through advanced technologies—including AI-driven operations and machine learning. Our team values innovation, teamwork, and a commitment to making a meaningful difference in the world. Join us to work with smart, dedicated individuals on important missions that shape the future.\n\nPosition Summary\n\nWe are seeking a highly motivated Junior AI/ML Engineer to join our growing team. In this role, you will contribute to the design, development, and deployment of machine learning models and AI solutions that support our clients’ digital transformation and automation initiatives. This is an excellent opportunity for early-career professionals eager to learn, grow, and make an impact in a collaborative, mission-driven environment.\n\nKey Responsibilities\n\n• Assist in collecting, cleaning, and preprocessing structured and unstructured data for use in machine learning models.\n\n• Support the design, training, testing, and deployment of machine learning and deep learning models for real-world applications.\n\n• Collaborate with senior engineers and cross-functional teams to identify, extract, and engineer relevant features for model performance.\n\n• Analyze and evaluate model performance using appropriate metrics; help optimize models for accuracy and efficiency.\n\n• Contribute to the integration and deployment of ML models into production environments using APIs or deployment pipelines.\n\n• Stay current with the latest AI/ML trends, tools, and best practices; experiment with innovative techniques under guidance.\n\n• Document datasets, models, experiments, and code to ensure reproducibility and knowledge sharing.\n\n• Communicate technical concepts effectively to both technical and non-technical stakeholders.\n\nRequired Qualifications\n\n• Bachelor’s degree in Computer Science, Data Science, Engineering, Mathematics, or a related field. Or 2 years work experience in software engineering with some AI/ML practices.\n\n• Proficiency in Python and familiarity with ML libraries such as TensorFlow, PyTorch, Scikit-learn, or Keras.\n\n• Strong understanding of linear algebra, probability, statistics, and optimization techniques.\n\n• Experience with data manipulation tools (e.g., pandas, NumPy) and data visualization libraries (e.g., Matplotlib, Seaborn).\n\n• Knowledge of version control systems (e.g., Git) for collaborative development.\n\n• Analytical mindset and a passion for solving complex problems.\n\n•Excellent communication and teamwork skills.\n\nPreferred Qualifications\n\n• Experience with cloud platforms (AWS, Azure, GCP) and MLOps practices.\n\n• Familiarity with Agile methodologies and DevOps practices.\n\n• Exposure to natural language processing (NLP), computer vision, or cybersecurity applications is a plus.\n\n• Internship or project experience in AI/ML, including participation in Kaggle competitions or open-source contributions.\n\nWhy Join PingWind?\n\n• Work on impactful projects that support national security and digital transformation for federal clients.\n\n• Collaborate with a diverse, mission-driven team that values innovation and professional growth.\n\n• Hybrid work flexibility with offices in Annandale, VA and Washington, DC, plus a distributed team across 37 states.\n\n• Opportunities for continuous learning and investing in our people through mentorship and challenging assignments.\n\nAbout PingWind\n\nPingWind is focused on delivering outstanding services to the federal government. We have extensive experience in the fields of cybersecurity, development, IT infrastructure, supply chain management and other professional services such as system design and continuous improvement. PingWind is an SBA certified Service-Disabled Veteran-Owned Small Business (SDVOSB) with offices in Northern Virginia and Huntsville AL.\n\nOur benefits include:\n\nPaid Federal Holidays\n\nRobust Health & Dental Insurance Options\n\n401k with matching\n\nPaid vacation and sick leave\n\nContinuing education assistance\n\nShort Term / Long Term Disability & Life Insurance\n\nEmployee Assistance Program through Sun Life Financial EAP Guidance Resources\n\nVeterans are encouraged to apply\n\nPingWind, Inc. does not discriminate in employment opportunities, terms, and conditions of employment, or practices on the basis of race, age, gender, religious or political beliefs, national origin or heritage, disability, sexual orientation, or any characteristic protected by law.",
+              "job_is_remote": false,
+              "job_posted_at": "6 days ago",
+              "job_posted_at_timestamp": 1754870400,
+              "job_posted_at_datetime_utc": "2025-08-11T00:00:00.000Z",
+              "job_location": "Washington, DC",
+              "job_city": "Washington",
+              "job_state": "District of Columbia",
+              "job_country": "US",
+              "job_latitude": 38.9071923,
+              "job_longitude": -77.0368707,
+              "job_benefits": [
+                "dental_coverage",
+                "health_insurance",
+                "paid_time_off"
+              ],
+              "job_google_link": "https://www.google.com/search?q=jobs&gl=us&hl=en&udm=8#vhid=vt%3D20/docid%3DadDsPv9zGI5DofLyAAAAAA%3D%3D&vssid=jobs-detail-viewer",
+              "job_salary": null,
+              "job_min_salary": null,
+              "job_max_salary": null,
+              "job_salary_period": null,
+              "job_highlights": {
+                "Qualifications": [
+                  "Bachelor’s degree in Computer Science, Data Science, Engineering, Mathematics, or a related field",
+                  "Or 2 years work experience in software engineering with some AI/ML practices",
+                  "Proficiency in Python and familiarity with ML libraries such as TensorFlow, PyTorch, Scikit-learn, or Keras",
+                  "Strong understanding of linear algebra, probability, statistics, and optimization techniques",
+                  "Experience with data manipulation tools (e.g., pandas, NumPy) and data visualization libraries (e.g., Matplotlib, Seaborn)",
+                  "Knowledge of version control systems (e.g., Git) for collaborative development",
+                  "Analytical mindset and a passion for solving complex problems",
+                  "Excellent communication and teamwork skills"
+                ],
+                "Benefits": [
+                  "Work on impactful projects that support national security and digital transformation for federal clients",
+                  "Opportunities for continuous learning and investing in our people through mentorship and challenging assignments",
+                  "Paid Federal Holidays",
+                  "Robust Health & Dental Insurance Options",
+                  "401k with matching",
+                  "Paid vacation and sick leave",
+                  "Continuing education assistance",
+                  "Short Term / Long Term Disability & Life Insurance",
+                  "Employee Assistance Program through Sun Life Financial EAP Guidance Resources"
+                ],
+                "Responsibilities": [
+                  "In this role, you will contribute to the design, development, and deployment of machine learning models and AI solutions that support our clients’ digital transformation and automation initiatives",
+                  "This is an excellent opportunity for early-career professionals eager to learn, grow, and make an impact in a collaborative, mission-driven environment",
+                  "Assist in collecting, cleaning, and preprocessing structured and unstructured data for use in machine learning models",
+                  "Support the design, training, testing, and deployment of machine learning and deep learning models for real-world applications",
+                  "Collaborate with senior engineers and cross-functional teams to identify, extract, and engineer relevant features for model performance",
+                  "Analyze and evaluate model performance using appropriate metrics; help optimize models for accuracy and efficiency",
+                  "Contribute to the integration and deployment of ML models into production environments using APIs or deployment pipelines",
+                  "Stay current with the latest AI/ML trends, tools, and best practices; experiment with innovative techniques under guidance",
+                  "Document datasets, models, experiments, and code to ensure reproducibility and knowledge sharing",
+                  "Communicate technical concepts effectively to both technical and non-technical stakeholders"
+                ]
+              },
+              "job_onet_soc": "15111100",
+              "job_onet_job_zone": "5"
+            },
+            {
+              "job_id": "UfTFepyZK0Sq4pOfAAAAAA==",
+              "job_title": "AI Engineer, Junior",
+              "employer_name": "KBR",
+              "employer_logo": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRnwTr9RRsxNwkbWwjF3osg7_aKN3CMgcS77dtc&s=0",
+              "employer_website": null,
+              "job_publisher": "KBR Careers",
+              "job_employment_type": "Full-time",
+              "job_employment_types": [
+                "FULLTIME"
+              ],
+              "job_apply_link": "https://careers.kbr.com/us/en/job/R2105683/AI-Engineer-Junior?utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+              "job_apply_is_direct": false,
+              "apply_options": [
+                {
+                  "publisher": "KBR Careers",
+                  "apply_link": "https://careers.kbr.com/us/en/job/R2105683/AI-Engineer-Junior?utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+                  "is_direct": false
+                },
+                {
+                  "publisher": "ClearedJobs.Net",
+                  "apply_link": "https://clearedjobs.net/job/ai-engineer-junior-chantilly-virginia-1742337?utm_source=aiminions.io&utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+                  "is_direct": false
+                },
+                {
+                  "publisher": "ZipRecruiter",
+                  "apply_link": "https://www.ziprecruiter.com/c/KBR,-Inc./Job/AI-Engineer,-Junior/-in-Chantilly,VA?jid=ef0b197ee048e61c&utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+                  "is_direct": true
+                },
+                {
+                  "publisher": "Indeed",
+                  "apply_link": "https://www.indeed.com/viewjob?jk=6a7b4d36494dc193&utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+                  "is_direct": false
+                },
+                {
+                  "publisher": "LinkedIn",
+                  "apply_link": "https://www.linkedin.com/jobs/view/ai-engineer-junior-at-kbr-inc-4217120737?utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+                  "is_direct": false
+                },
+                {
+                  "publisher": "Glassdoor",
+                  "apply_link": "https://www.glassdoor.com/job-listing/ai-engineer-junior-kbr-JV_IC1130353_KO0,18_KE19,22.htm?jl=1009725106951&utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+                  "is_direct": false
+                },
+                {
+                  "publisher": "Snagajob",
+                  "apply_link": "https://www.snagajob.com/jobs/1101139794?utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+                  "is_direct": false
+                },
+                {
+                  "publisher": "Teal",
+                  "apply_link": "https://www.tealhq.com/job/ai-engineer-junior_5ac45269-90cc-4fdd-9117-867e74215f6a?utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+                  "is_direct": false
+                }
+              ],
+              "job_description": "Title:\nAI Engineer, Junior\n\nTitle:\n\nAI Engineer, Junior\n\nBelong. Connect. Grow. with KBR!\n\nKBR’s National Security Solutions team provides high-end engineering and advanced technology solutions to our customers in the intelligence and national security communities. In this position, your work will have a profound impact on the country’s most critical role – protecting our national security.\n\nWhy Join Us?\n• Innovative Projects: KBR’s work is at the forefront of engineering, logistics, operations, science, program management, mission IT and cybersecurity solutions.\n• Collaborative Environment: Be part of a dynamic team that thrives on collaboration and innovation, fostering a supportive and intellectually stimulating workplace.\n• Impactful Work: Your contributions will be pivotal in designing and optimizing defense systems that ensure national security and shape the future of space defense.\n\nThis is a contingent position based upon contract award\n\nKBR is seeking a highly motivated and Junior AI Engineer to join our Verification and Validation team. As a key member of our team, you will play a critical role in ensuring the reliability and accuracy of our AI technologies and products. You will work on a broad range of projects, from initial development to deployment.\n\nKey Responsibilities:\n• Develop and Apply Verification and Validation Techniques:\n• Develop and apply current verification and validation paradigms, including model testing, simulation, and formal methods, to ensure the accuracy and reliability of AI systems.\n• Engage in every phase of the system development lifecycle, including requirements generation, system and software design, implementation, integration, and testing.\n• Take ownership of critical tasks to deliver high-quality solutions.\n• Participate in the development of proposals and whitepapers to secure funding for verification and validation projects.\n• Collaboration and Communication:\n• Work collaboratively with cross-functional teams to develop and deploy AI solutions.\n• Communicate complex technical concepts and solutions to non-technical stakeholders.\n• Engage with other teams to identify opportunities for verification and validation of AI systems.\n\nMinimum Qualifications:\n\nTechnical Skills:\n• Strong background in software engineering, artificial intelligence, and machine learning.\n• Experience with current verification and validation paradigms, including model testing, simulation, and formal methods.\n• Proficiency in programming languages such as Python, Java, or C++.\n• Strong background in signal processing theory and application (radar, communication, electronic warfare, sonar, audio, or biomedical).\n\nSoft Skills:\n• Self-motivation, strong work ethic, and time management skills.\n• Excellent interpersonal and communication skills.\n\nEducation and Experience:\n• Bachelor's degree in a relevant field, such as computer science, electrical engineering, or mathematics.\n• 3-5 years of experience in AI or a related field.\n\nBasic Qualifications:\n• Bachelor’s Degree in Engineering, Computer Science, or other related discipline.\n• Experience developing with machine learning frameworks (Pytorch, Tensorflow, MxNet, Caffe, Keras, etc.).\n• Experience with Python and multiple libraries (NumPy, OpenCV, Scikit, Pandas, SciPy, etc.).\n• Understanding of software engineering best practices.\n• Must be a US Citizen\n• TS/SCI with willingness to sit for a Poly\n\nAdditional Compensation:\n\nKBR may offer bonuses, commissions, or other forms of compensation to certain job titles or levels, per internal policy or contractual designation. Additional compensation may be in the form of sign on bonus, relocation benefits, short term incentives, long term incentives, or discretionary payments for exceptional performance.\n\nReady to Make a Difference?\n\nIf you’re excited about making a significant impact in the field of space defense and working on projects that matter, we encourage you to apply and join our team at KBR. Let's shape the future together.\n\nKBR Benefits\n\nKBR offers a selection of competitive lifestyle benefits which could include 401K plan with company match, medical, dental, vision, life insurance, AD&D, flexible spending account, disability, paid time off, or flexible work schedule. We support career advancement through professional training and development.\n\nBelong, Connect and Grow at KBR\n\nAt KBR, we are passionate about our people and our Zero Harm culture. These inform all that we do and are at the heart of our commitment to, and ongoing journey toward being a People First company. That commitment is central to our team of team’s philosophy and fosters an environment where everyone can Belong, Connect and Grow. We Deliver – Together.\n\nKBR is an equal opportunity employer. All qualified applicants will receive consideration for employment without regard to race, color, religion, disability, sex, sexual orientation, gender identity or expression, age, national origin, veteran status, genetic information, union status and/or beliefs, or any other characteristic protected by federal, state, or local law.\n\nBelong, Connect and Grow at KBR\n\nAt KBR, we are passionate about our people and our Zero Harm culture. These inform all that we do and are at the heart of our commitment to, and ongoing journey toward being a People First company. That commitment is central to our team of team’s philosophy and fosters an environment where everyone can Belong, Connect and Grow. We Deliver – Together.\n\nKBR is an equal opportunity employer. All qualified applicants will receive consideration for employment without regard to race, color, religion, disability, sex, sexual orientation, gender identity or expression, age, national origin, veteran status, genetic information, union status and/or beliefs, or any other characteristic protected by federal, state, or local law.",
+              "job_is_remote": false,
+              "job_posted_at": null,
+              "job_posted_at_timestamp": null,
+              "job_posted_at_datetime_utc": null,
+              "job_location": "Chantilly, VA",
+              "job_city": "Chantilly",
+              "job_state": "Virginia",
+              "job_country": "US",
+              "job_latitude": 38.886981899999995,
+              "job_longitude": -77.4390375,
+              "job_benefits": [
+                "paid_time_off",
+                "dental_coverage",
+                "health_insurance"
+              ],
+              "job_google_link": "https://www.google.com/search?q=jobs&gl=us&hl=en&udm=8#vhid=vt%3D20/docid%3DUfTFepyZK0Sq4pOfAAAAAA%3D%3D&vssid=jobs-detail-viewer",
+              "job_salary": null,
+              "job_min_salary": null,
+              "job_max_salary": null,
+              "job_salary_period": null,
+              "job_highlights": {
+                "Qualifications": [
+                  "Strong background in software engineering, artificial intelligence, and machine learning",
+                  "Experience with current verification and validation paradigms, including model testing, simulation, and formal methods",
+                  "Proficiency in programming languages such as Python, Java, or C++",
+                  "Strong background in signal processing theory and application (radar, communication, electronic warfare, sonar, audio, or biomedical)",
+                  "Self-motivation, strong work ethic, and time management skills",
+                  "Excellent interpersonal and communication skills",
+                  "Bachelor's degree in a relevant field, such as computer science, electrical engineering, or mathematics",
+                  "3-5 years of experience in AI or a related field",
+                  "Bachelor’s Degree in Engineering, Computer Science, or other related discipline",
+                  "Experience developing with machine learning frameworks (Pytorch, Tensorflow, MxNet, Caffe, Keras, etc.)",
+                  "Experience with Python and multiple libraries (NumPy, OpenCV, Scikit, Pandas, SciPy, etc.)",
+                  "Understanding of software engineering best practices",
+                  "Must be a US Citizen",
+                  "TS/SCI with willingness to sit for a Poly"
+                ],
+                "Benefits": [
+                  "Impactful Work: Your contributions will be pivotal in designing and optimizing defense systems that ensure national security and shape the future of space defense",
+                  "KBR may offer bonuses, commissions, or other forms of compensation to certain job titles or levels, per internal policy or contractual designation",
+                  "Additional compensation may be in the form of sign on bonus, relocation benefits, short term incentives, long term incentives, or discretionary payments for exceptional performance",
+                  "KBR offers a selection of competitive lifestyle benefits which could include 401K plan with company match, medical, dental, vision, life insurance, AD&D, flexible spending account, disability, paid time off, or flexible work schedule",
+                  "We support career advancement through professional training and development"
+                ],
+                "Responsibilities": [
+                  "As a key member of our team, you will play a critical role in ensuring the reliability and accuracy of our AI technologies and products",
+                  "You will work on a broad range of projects, from initial development to deployment",
+                  "Develop and Apply Verification and Validation Techniques:",
+                  "Develop and apply current verification and validation paradigms, including model testing, simulation, and formal methods, to ensure the accuracy and reliability of AI systems",
+                  "Engage in every phase of the system development lifecycle, including requirements generation, system and software design, implementation, integration, and testing",
+                  "Take ownership of critical tasks to deliver high-quality solutions",
+                  "Participate in the development of proposals and whitepapers to secure funding for verification and validation projects",
+                  "Collaboration and Communication:",
+                  "Work collaboratively with cross-functional teams to develop and deploy AI solutions",
+                  "Communicate complex technical concepts and solutions to non-technical stakeholders",
+                  "Engage with other teams to identify opportunities for verification and validation of AI systems"
+                ]
+              },
+              "job_onet_soc": "15111100",
+              "job_onet_job_zone": "5"
+            },
+            {
+              "job_id": "A0W6R1z1ODylMOoaAAAAAA==",
+              "job_title": "AI Engineer – Data Scientist (NLP & Cybersecurity)",
+              "employer_name": "EnDyna Inc",
+              "employer_logo": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ5uOi3ZNaWyM8_Nv8ma3CQkO55fzw7ph85xC5b&s=0",
+              "employer_website": null,
+              "job_publisher": "LinkedIn",
+              "job_employment_type": "Full-time",
+              "job_employment_types": [
+                "FULLTIME"
+              ],
+              "job_apply_link": "https://www.linkedin.com/jobs/view/ai-engineer-%E2%80%93-data-scientist-nlp-cybersecurity-at-endyna-inc-4284575742?utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+              "job_apply_is_direct": false,
+              "apply_options": [
+                {
+                  "publisher": "LinkedIn",
+                  "apply_link": "https://www.linkedin.com/jobs/view/ai-engineer-%E2%80%93-data-scientist-nlp-cybersecurity-at-endyna-inc-4284575742?utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+                  "is_direct": false
+                },
+                {
+                  "publisher": "Indeed",
+                  "apply_link": "https://www.indeed.com/viewjob?jk=6a88624384eb420d&utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+                  "is_direct": true
+                },
+                {
+                  "publisher": "Glassdoor",
+                  "apply_link": "https://www.glassdoor.com/job-listing/ai-engineer-%E2%80%93-data-scientist-nlp-and-cybersecurity-endyna-JV_IC1158535_KO0,50_KE51,57.htm?jl=1009843523743&utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+                  "is_direct": true
+                },
+                {
+                  "publisher": "SimplyHired",
+                  "apply_link": "https://www.simplyhired.com/job/-qX1dYwGhYSr27lqNGG5DU_kp3WAWGkYH1laG2EPlwyaT4gxMKoC5g?utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+                  "is_direct": false
+                },
+                {
+                  "publisher": "Jobilize",
+                  "apply_link": "https://www.jobilize.com/job/us-va-mclean-lead-data-backend-engineer-python-java-ai-orchard-co?utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+                  "is_direct": false
+                }
+              ],
+              "job_description": "Position Overview\n\nWe are seeking an AI Engineer – Data Scientist with strong expertise in Natural Language Processing (NLP), predictive modeling, and data engineering. The ideal candidate will develop and implement machine learning models that process large-scale unstructured and structured text data in the cybersecurity domain. This position will be based in our Tysons Corner, Virginia office, offering free parking and within 10 minutes of the Metro station.\n\nMain Responsibilities\n\nNLP & Predictive Modeling\n• Design, develop, and deploy NLP pipelines for extracting, processing, and analyzing large-scale cybersecurity-related text data (e.g., threat reports, logs, vulnerability disclosures).\n• Build and optimize predictive models to identify, classify, and forecast cybersecurity risks and trends.\n• Implement advanced algorithms such as named entity recognition (NER), topic modeling, sentiment analysis, and text summarization.\n\nData Engineering & Data Science\n• Develop data ingestion and transformation workflows from multiple structured and unstructured data sources.\n• Design and maintain scalable data pipelines and data lakes to support analytics and model training.\n• Conduct exploratory data analysis (EDA) to identify patterns, anomalies, and actionable insights.\n• Perform feature engineering to enhance model accuracy and relevance.\n\nCybersecurity Application\n• Leverage NLP and AI to detect, analyze, and predict cyber threats, vulnerabilities, and attack patterns.\n• Collaborate with cybersecurity analysts to validate model outputs and integrate AI-driven insights into security workflows.\n\nVisualization & Reporting\n• Create interactive dashboards and visualizations (Power BI, Tableau, or similar) to communicate findings to technical and non-technical stakeholders.\n• Prepare and present analytical reports summarizing methods, findings, and recommendations.\n\nQualifications Required\n• Bachelor’s or Master’s degree in Artificial Intelligence, Data Science, Computer Science, or related field.\n• Strong proficiency in Python and libraries such as spaCy, NLTK, Hugging Face Transformers, TensorFlow, or PyTorch.\n• 8-10 years of experience building, training, and deploying NLP models in production environments.\n• Strong knowledge of data engineering concepts: ETL processes, SQL/NoSQL databases, and data pipeline tools (e.g., Apache Spark, Airflow).\n• Solid understanding of machine learning methods and predictive modeling.\n• Excellent analytical, problem-solving, and communication skills.\n• Need to be a US citizen.\n\nPreferred\n• Experience working with cybersecurity datasets (e.g., CVE data, threat intelligence feeds, log analysis).\n• Familiarity with cybersecurity frameworks (e.g., MITRE ATT&CK, NIST).\n• Experience with cloud platforms (AWS, Azure, or GCP).\n• Familiarity with containerization (Docker) and CI/CD for ML deployment.\n\nBenefits & Perks\n• Competitive salary based on experience and qualifications.\n• Medical, dental, and vision insurance for employees and dependents.\n• 401(k) with employer match.\n• Paid time off (PTO) and holidays.\n• Short-term and long-term disability coverage and Life insurance.\n• Free parking and close access to public transit.\n\nIt is EnDyna’s policy to promote equal employment opportunities. All qualified applicants will receive consideration for employment without regard to sex, race, color, ethnicity, age, national origin, citizenship, religion, physical or mental disability, medical condition, genetic information, pregnancy, family structure, marital status, ancestry, domestic partner status, sexual orientation, gender identity or expression, veteran or military status, or any other basis.",
+              "job_is_remote": false,
+              "job_posted_at": "4 days ago",
+              "job_posted_at_timestamp": 1755043200,
+              "job_posted_at_datetime_utc": "2025-08-13T00:00:00.000Z",
+              "job_location": "McLean, VA",
+              "job_city": "McLean",
+              "job_state": "Virginia",
+              "job_country": "US",
+              "job_latitude": 38.9338676,
+              "job_longitude": -77.1772604,
+              "job_benefits": [
+                "paid_time_off",
+                "health_insurance",
+                "dental_coverage"
+              ],
+              "job_google_link": "https://www.google.com/search?q=jobs&gl=us&hl=en&udm=8#vhid=vt%3D20/docid%3DA0W6R1z1ODylMOoaAAAAAA%3D%3D&vssid=jobs-detail-viewer",
+              "job_salary": null,
+              "job_min_salary": null,
+              "job_max_salary": null,
+              "job_salary_period": null,
+              "job_highlights": {
+                "Qualifications": [
+                  "Bachelor’s or Master’s degree in Artificial Intelligence, Data Science, Computer Science, or related field",
+                  "Strong proficiency in Python and libraries such as spaCy, NLTK, Hugging Face Transformers, TensorFlow, or PyTorch",
+                  "8-10 years of experience building, training, and deploying NLP models in production environments",
+                  "Strong knowledge of data engineering concepts: ETL processes, SQL/NoSQL databases, and data pipeline tools (e.g., Apache Spark, Airflow)",
+                  "Solid understanding of machine learning methods and predictive modeling",
+                  "Excellent analytical, problem-solving, and communication skills",
+                  "Need to be a US citizen"
+                ],
+                "Benefits": [
+                  "Benefits & Perks",
+                  "Competitive salary based on experience and qualifications",
+                  "Medical, dental, and vision insurance for employees and dependents",
+                  "401(k) with employer match",
+                  "Paid time off (PTO) and holidays",
+                  "Short-term and long-term disability coverage and Life insurance",
+                  "Free parking and close access to public transit"
+                ],
+                "Responsibilities": [
+                  "The ideal candidate will develop and implement machine learning models that process large-scale unstructured and structured text data in the cybersecurity domain",
+                  "NLP & Predictive Modeling",
+                  "Design, develop, and deploy NLP pipelines for extracting, processing, and analyzing large-scale cybersecurity-related text data (e.g., threat reports, logs, vulnerability disclosures)",
+                  "Build and optimize predictive models to identify, classify, and forecast cybersecurity risks and trends",
+                  "Implement advanced algorithms such as named entity recognition (NER), topic modeling, sentiment analysis, and text summarization",
+                  "Develop data ingestion and transformation workflows from multiple structured and unstructured data sources",
+                  "Design and maintain scalable data pipelines and data lakes to support analytics and model training",
+                  "Conduct exploratory data analysis (EDA) to identify patterns, anomalies, and actionable insights",
+                  "Perform feature engineering to enhance model accuracy and relevance",
+                  "Leverage NLP and AI to detect, analyze, and predict cyber threats, vulnerabilities, and attack patterns",
+                  "Collaborate with cybersecurity analysts to validate model outputs and integrate AI-driven insights into security workflows",
+                  "Visualization & Reporting",
+                  "Create interactive dashboards and visualizations (Power BI, Tableau, or similar) to communicate findings to technical and non-technical stakeholders",
+                  "Prepare and present analytical reports summarizing methods, findings, and recommendations"
+                ]
+              },
+              "job_onet_soc": "15111100",
+              "job_onet_job_zone": "5"
+            },
+            {
+              "job_id": "anP_UatsW7egBSpbAAAAAA==",
+              "job_title": "Gen ai Engineer.",
+              "employer_name": "Pyramid Consulting, Inc",
+              "employer_logo": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSJ7vkmvrzlet66zQzyKfeU8HG4XgoCK2ifS7rG&s=0",
+              "employer_website": "https://pyramidci.com",
+              "job_publisher": "LinkedIn",
+              "job_employment_type": "Contractor",
+              "job_employment_types": [
+                "CONTRACTOR",
+                "CONTRACTOR"
+              ],
+              "job_apply_link": "https://www.linkedin.com/jobs/view/gen-ai-engineer-at-pyramid-consulting-inc-4278318832?utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+              "job_apply_is_direct": false,
+              "apply_options": [
+                {
+                  "publisher": "LinkedIn",
+                  "apply_link": "https://www.linkedin.com/jobs/view/gen-ai-engineer-at-pyramid-consulting-inc-4278318832?utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+                  "is_direct": false
+                },
+                {
+                  "publisher": "JobLeads",
+                  "apply_link": "https://www.jobleads.com/us/job/gen-ai-engineer--washington--e96acc381ba4154ed2b2a697f02183f55?utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+                  "is_direct": false
+                },
+                {
+                  "publisher": "Recruit.net",
+                  "apply_link": "https://www.recruit.net/job/gen-ai-engineer--jobs/8E337A34290019AC?utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+                  "is_direct": false
+                }
+              ],
+              "job_description": "Immediate need for a talented Gen ai Engineer. This is a 12+months contract opportunity with long-term potential and is located in Washington, DC(Onsite). Please review the job description below and contact me ASAP if you are interested.\n\nJob ID: 25-60665\n\nPay Range: $48 - $50/hour. Employee benefits include, but are not limited to, health insurance (medical, dental, vision), 401(k) plan, and paid sick leave (depending on work location).\n\nKey Responsibilities:\n• Design methods, tools, and infrastructure to deliver Generative AI solutions using state of the art in large language models and their applications.\n• Apply AI technologies to develop and optimize the Fund’s IT services.\n• Contribute to experiments, including designing experimental details, writing reusable code, running evaluations, and organizing results.\n• Stay up-to-date with the latest developments in the field of generative AI.\n• Implementing server-side logic, connecting to SQL services, Microsoft Graph, SharePoint online and other API services, and ensuring high performance and responsiveness to requests from the frontend.\n• Developing Azure Functions and API Management strategies.\n• Designing and developing robust APIs (both REST and GraphQL).\n• Writing efficient, maintainable code following best practices (testing, source control, continuous integration, etc.).\n• Using Azure AI Studio to design and implement Custom GPT’s using Promptflows.\n• Working closely with front-end developers to integrate user-facing elements and server-side logic.\n• Collaborating with other team members and stakeholders to solve problems and improve functionality\n\nKey Requirements and Technology Experience:\n• 5- 10 years of professional experience in the field of Software Engineering.\n• A minimum of 5 years of hands-on experience in .NET Core/6+, Typescript, App service, API Development\n• Experience with Azure Services such as API, SQL DB, Cognitive Services, Logic Apps, AI Studio is preferred\n• A strong background in Software engineering and cloud native solution development. Microsoft Azure Cloud experience is strongly preferred.\n• Proficiency in declarative, imperative, dynamic, and/or functional programming languages, including TSQL, XML, Python, C/C++/C#, F#, JavaScript, Typescript. Experience in complex Typescript and Python codebases is a plus.\n• Demonstrated knowledge of machine learning techniques such as decision trees, logistic regression, supervised and unsupervised learning, etc.\n• Experience in the use of LLM APIs and GenAI Tooling including Azure AI Studio, OpenAI APIs, Llama, Mistral, and other Large and Small Language Model APIs.\n• Demonstrated work experience with extract, transform, and load (ETL) for large-scale, complex data sets. Experience with data analytics and database design.\n• Demonstrated knowledge of systems engineering, object-oriented design, and defensive programming.\n• Knowledge of distributed version controls systems, software configuration management and Application Lifecycle Management tools.\n• Demonstrable experience with Azure DevOps and Git.\n• Experience in data architecture and application architecture, target state design and strategy.\n• Experience with system integration, cloud native architecture and design using Microsoft Azure is a plus.\n• Experience in developing and deploying AI solutions, with a focus on text analytics and natural language processing. Including but not limited to solutions using Azure AI Studio/Foundry, Open AI Models, LangChain and Bot Frameworks.\n• Experience with developing solutions with structured and unstructured data and NoSQL Databases, such as MongoDb/CosmosDB.\n• Ability to use different CLIs and scripting languages, understanding their nuances and benefits.\n• Typescript, Powershell, Azure CLI and related tools and languages are a plus.\n• Ability to apply knowledge, skills, tools, or techniques to complex programs and project activities to meet the specific business and technical program or project requirements (including security).\n\nOur client is a leading IT Industry, and we are currently interviewing to fill this and other similar contract positions. If you are interested in this position, please apply online for immediate consideration.\n\nPyramid Consulting, Inc. provides equal employment opportunities to all employees and applicants for employment and prohibits discrimination and harassment of any type without regard to race, color, religion, age, sex, national origin, disability status, genetics, protected veteran status, sexual orientation, gender identity or expression, or any other characteristic protected by federal, state or local laws.\n\nBy applying to our jobs, you agree to receive calls, AI-generated calls, text messages, or emails from Pyramid Consulting, Inc. and its affiliates, and contracted partners. Frequency varies for text messages. Message and data rates may apply. Carriers are not liable for delayed or undelivered messages. You can reply STOP to cancel and HELP for help. You can access our privacy policy here.",
+              "job_is_remote": false,
+              "job_posted_at": "18 days ago",
+              "job_posted_at_timestamp": 1753833600,
+              "job_posted_at_datetime_utc": "2025-07-30T00:00:00.000Z",
+              "job_location": "Washington, DC",
+              "job_city": "Washington",
+              "job_state": "District of Columbia",
+              "job_country": "US",
+              "job_latitude": 38.9071923,
+              "job_longitude": -77.0368707,
+              "job_benefits": [
+                "paid_time_off",
+                "health_insurance",
+                "dental_coverage"
+              ],
+              "job_google_link": "https://www.google.com/search?q=jobs&gl=us&hl=en&udm=8#vhid=vt%3D20/docid%3DanP_UatsW7egBSpbAAAAAA%3D%3D&vssid=jobs-detail-viewer",
+              "job_min_salary": 48,
+              "job_max_salary": 50,
+              "job_salary_period": "HOUR",
+              "job_highlights": {
+                "Qualifications": [
+                  "5- 10 years of professional experience in the field of Software Engineering",
+                  "A minimum of 5 years of hands-on experience in .NET Core/6+, Typescript, App service, API Development",
+                  "A strong background in Software engineering and cloud native solution development",
+                  "Demonstrated knowledge of machine learning techniques such as decision trees, logistic regression, supervised and unsupervised learning, etc",
+                  "Experience in the use of LLM APIs and GenAI Tooling including Azure AI Studio, OpenAI APIs, Llama, Mistral, and other Large and Small Language Model APIs",
+                  "Demonstrated work experience with extract, transform, and load (ETL) for large-scale, complex data sets",
+                  "Experience with data analytics and database design",
+                  "Demonstrated knowledge of systems engineering, object-oriented design, and defensive programming",
+                  "Knowledge of distributed version controls systems, software configuration management and Application Lifecycle Management tools",
+                  "Demonstrable experience with Azure DevOps and Git",
+                  "Experience in data architecture and application architecture, target state design and strategy",
+                  "Experience in developing and deploying AI solutions, with a focus on text analytics and natural language processing",
+                  "Including but not limited to solutions using Azure AI Studio/Foundry, Open AI Models, LangChain and Bot Frameworks",
+                  "Experience with developing solutions with structured and unstructured data and NoSQL Databases, such as MongoDb/CosmosDB",
+                  "Ability to use different CLIs and scripting languages, understanding their nuances and benefits",
+                  "Ability to apply knowledge, skills, tools, or techniques to complex programs and project activities to meet the specific business and technical program or project requirements (including security)"
+                ],
+                "Benefits": [
+                  "Pay Range: $48 - $50/hour",
+                  "Employee benefits include, but are not limited to, health insurance (medical, dental, vision), 401(k) plan, and paid sick leave (depending on work location)"
+                ],
+                "Responsibilities": [
+                  "Design methods, tools, and infrastructure to deliver Generative AI solutions using state of the art in large language models and their applications",
+                  "Apply AI technologies to develop and optimize the Fund’s IT services",
+                  "Contribute to experiments, including designing experimental details, writing reusable code, running evaluations, and organizing results",
+                  "Stay up-to-date with the latest developments in the field of generative AI",
+                  "Implementing server-side logic, connecting to SQL services, Microsoft Graph, SharePoint online and other API services, and ensuring high performance and responsiveness to requests from the frontend",
+                  "Developing Azure Functions and API Management strategies",
+                  "Designing and developing robust APIs (both REST and GraphQL)",
+                  "Writing efficient, maintainable code following best practices (testing, source control, continuous integration, etc.)",
+                  "Using Azure AI Studio to design and implement Custom GPT’s using Promptflows",
+                  "Working closely with front-end developers to integrate user-facing elements and server-side logic",
+                  "Collaborating with other team members and stakeholders to solve problems and improve functionality"
+                ]
+              },
+              "job_onet_soc": "15111100",
+              "job_onet_job_zone": "5"
+            },
+            {
+              "job_id": "WqztRH5u9FIPGAemAAAAAA==",
+              "job_title": "AI Technology & Studio AI/Cloud/DevOps Engineer",
+              "employer_name": "Guidehouse",
+              "employer_logo": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ0MHu760mZcVMrxAGr7Cs29-UvvD16to5FQy0Z&s=0",
+              "employer_website": "https://guidehouse.com",
+              "job_publisher": "LinkedIn",
+              "job_employment_type": "Full-time",
+              "job_employment_types": [
+                "FULLTIME"
+              ],
+              "job_apply_link": "https://www.linkedin.com/jobs/view/ai-technology-studio-ai-cloud-devops-engineer-at-guidehouse-4283560541?utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+              "job_apply_is_direct": false,
+              "apply_options": [
+                {
+                  "publisher": "LinkedIn",
+                  "apply_link": "https://www.linkedin.com/jobs/view/ai-technology-studio-ai-cloud-devops-engineer-at-guidehouse-4283560541?utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+                  "is_direct": false
+                },
+                {
+                  "publisher": "ZipRecruiter",
+                  "apply_link": "https://www.ziprecruiter.com/c/Guidehouse/Job/AI-Technology-&-Studio-AI-Cloud-DevOps-Engineer/-in-Mclean,VA?jid=a80034234e9df0a0&utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+                  "is_direct": false
+                },
+                {
+                  "publisher": "Glassdoor",
+                  "apply_link": "https://www.glassdoor.com/job-listing/ai-technology-and-studio-ai-cloud-devops-engineer-guidehouse-JV_IC1158535_KO0,49_KE50,60.htm?jl=1009842194907&utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+                  "is_direct": false
+                },
+                {
+                  "publisher": "Indeed",
+                  "apply_link": "https://www.indeed.com/viewjob?jk=a1b0699b46192ce3&utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+                  "is_direct": false
+                },
+                {
+                  "publisher": "SimplyHired",
+                  "apply_link": "https://www.simplyhired.com/job/vb5DXtySPQqPjMO9hOPc9txeAI8G4Kzgaz_Hg30f7gADNzRWtQWQTQ?utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+                  "is_direct": false
+                }
+              ],
+              "job_description": "Job Family\n\nDigital Consulting\n\nTravel Required\n\nUp to 10%\n\nClearance Required\n\nNone\n\nWhat Will You Do\n• Design build and maintain scalable AI and cloud infrastructure\n• Support the deployment and operation of AI solutions\n• Develop and maintain cloud-based AI infrastructure Implement CI CD pipelines and DevOps practices\n• Ensure system reliability and performance\n• Collaborate with data scientists and developers Monitor and troubleshoot production systems\n\nWhat You Will Need\n• US Citizenship is required\n• Minimum FIVE (5) years of experience in cloud and DevOps engineering Proficiency in AWS Azure or GCP\n• Experience with containerization and orchestration Docker Kubernetes\n• Strong scripting and automation skills Understanding of AI ML deployment workflows\n\nWhat Would Be Nice To Have\n• Certifications in cloud platforms or DevOps\n• Experience with AI model serving and monitoring\n• Knowledge of security and compliance in cloud environments\n\nThe annual salary range for this position is $130,000.00-$216,000.00. Compensation decisions depend on a wide range of factors, including but not limited to skill sets, experience and training, security clearances, licensure and certifications, and other business and organizational needs.\n\nWhat We Offer\n\nGuidehouse offers a comprehensive, total rewards package that includes competitive compensation and a flexible benefits package that reflects our commitment to creating a diverse and supportive workplace.\n\nBenefits Include\n• Medical, Rx, Dental & Vision Insurance\n• Personal and Family Sick Time & Company Paid Holidays\n• Position may be eligible for a discretionary variable incentive bonus\n• Parental Leave and Adoption Assistance\n• 401(k) Retirement Plan\n• Basic Life & Supplemental Life\n• Health Savings Account, Dental/Vision & Dependent Care Flexible Spending Accounts\n• Short-Term & Long-Term Disability\n• Student Loan PayDown\n• Tuition Reimbursement, Personal Development & Learning Opportunities\n• Skills Development & Certifications\n• Employee Referral Program\n• Corporate Sponsored Events & Community Outreach\n• Emergency Back-Up Childcare Program\n• Mobility Stipend\n\nAbout Guidehouse\n\nGuidehouse is an Equal Opportunity Employer–Protected Veterans, Individuals with Disabilities or any other basis protected by law, ordinance, or regulation.\n\nGuidehouse will consider for employment qualified applicants with criminal histories in a manner consistent with the requirements of applicable law or ordinance including the Fair Chance Ordinance of Los Angeles and San Francisco.\n\nIf you have visited our website for information about employment opportunities, or to apply for a position, and you require an accommodation, please contact Guidehouse Recruiting at 1-571-633-1711 or via email at RecruitingAccommodation@guidehouse.com. All information you provide will be kept confidential and will be used only to the extent required to provide needed reasonable accommodation.\n\nAll communication regarding recruitment for a Guidehouse position will be sent from Guidehouse email domains including @guidehouse.com or guidehouse@myworkday.com. Correspondence received by an applicant from any other domain should be considered unauthorized and will not be honored by Guidehouse. Note that Guidehouse will never charge a fee or require a money transfer at any stage of the recruitment process and does not collect fees from educational institutions for participation in a recruitment event. Never provide your banking information to a third party purporting to need that information to proceed in the hiring process.\n\nIf any person or organization demands money related to a job opportunity with Guidehouse, please report the matter to Guidehouse’s Ethics Hotline. If you want to check the validity of correspondence you have received, please contact recruiting@guidehouse.com. Guidehouse is not responsible for losses incurred (monetary or otherwise) from an applicant’s dealings with unauthorized third parties.\n\nGuidehouse does not accept unsolicited resumes through or from search firms or staffing agencies. All unsolicited resumes will be considered the property of Guidehouse and Guidehouse will not be obligated to pay a placement fee.",
+              "job_is_remote": false,
+              "job_posted_at": "5 days ago",
+              "job_posted_at_timestamp": 1754956800,
+              "job_posted_at_datetime_utc": "2025-08-12T00:00:00.000Z",
+              "job_location": "McLean, VA",
+              "job_city": "McLean",
+              "job_state": "Virginia",
+              "job_country": "US",
+              "job_latitude": 38.9338676,
+              "job_longitude": -77.1772604,
+              "job_benefits": [
+                "health_insurance",
+                "dental_coverage"
+              ],
+              "job_google_link": "https://www.google.com/search?q=jobs&gl=us&hl=en&udm=8#vhid=vt%3D20/docid%3DWqztRH5u9FIPGAemAAAAAA%3D%3D&vssid=jobs-detail-viewer",
+              "job_min_salary": 130000,
+              "job_max_salary": 216000,
+              "job_salary_period": "YEAR",
+              "job_highlights": {
+                "Qualifications": [
+                  "US Citizenship is required",
+                  "Minimum FIVE (5) years of experience in cloud and DevOps engineering Proficiency in AWS Azure or GCP",
+                  "Experience with containerization and orchestration Docker Kubernetes",
+                  "Strong scripting and automation skills Understanding of AI ML deployment workflows",
+                  "Certifications in cloud platforms or DevOps",
+                  "Experience with AI model serving and monitoring",
+                  "Knowledge of security and compliance in cloud environments"
+                ],
+                "Benefits": [
+                  "The annual salary range for this position is $130,000.00-$216,000.00",
+                  "Compensation decisions depend on a wide range of factors, including but not limited to skill sets, experience and training, security clearances, licensure and certifications, and other business and organizational needs",
+                  "Guidehouse offers a comprehensive, total rewards package that includes competitive compensation and a flexible benefits package that reflects our commitment to creating a diverse and supportive workplace",
+                  "Medical, Rx, Dental & Vision Insurance",
+                  "Personal and Family Sick Time & Company Paid Holidays",
+                  "Position may be eligible for a discretionary variable incentive bonus",
+                  "Parental Leave and Adoption Assistance",
+                  "401(k) Retirement Plan",
+                  "Basic Life & Supplemental Life",
+                  "Health Savings Account, Dental/Vision & Dependent Care Flexible Spending Accounts",
+                  "Short-Term & Long-Term Disability",
+                  "Student Loan PayDown",
+                  "Tuition Reimbursement, Personal Development & Learning Opportunities",
+                  "Skills Development & Certifications",
+                  "Employee Referral Program",
+                  "Corporate Sponsored Events & Community Outreach",
+                  "Emergency Back-Up Childcare Program",
+                  "Mobility Stipend"
+                ],
+                "Responsibilities": [
+                  "Design build and maintain scalable AI and cloud infrastructure",
+                  "Support the deployment and operation of AI solutions",
+                  "Develop and maintain cloud-based AI infrastructure Implement CI CD pipelines and DevOps practices",
+                  "Ensure system reliability and performance",
+                  "Collaborate with data scientists and developers Monitor and troubleshoot production systems"
+                ]
+              },
+              "job_onet_soc": "15111100",
+              "job_onet_job_zone": "5"
+            },
+            {
+              "job_id": "j0Ry6Lb1twymWJh8AAAAAA==",
+              "job_title": "Cloud & AI Solution Engineer – AI Applications",
+              "employer_name": "Microsoft",
+              "employer_logo": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS8OrNRadMAVhhUvJWrWA1FDiUYu1bBjXsGIJlV&s=0",
+              "employer_website": "https://www.microsoft.com",
+              "job_publisher": "LinkedIn",
+              "job_employment_type": "Full-time",
+              "job_employment_types": [
+                "FULLTIME"
+              ],
+              "job_apply_link": "https://www.linkedin.com/jobs/view/cloud-ai-solution-engineer-%E2%80%93-ai-applications-at-microsoft-4275649125?utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+              "job_apply_is_direct": false,
+              "apply_options": [
+                {
+                  "publisher": "LinkedIn",
+                  "apply_link": "https://www.linkedin.com/jobs/view/cloud-ai-solution-engineer-%E2%80%93-ai-applications-at-microsoft-4275649125?utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+                  "is_direct": false
+                },
+                {
+                  "publisher": "AI-Search.io",
+                  "apply_link": "https://ai-search.io/job-board/microsoft-cloud-ai-solution-engineer-innovative-ai-applications-20250529?utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+                  "is_direct": false
+                }
+              ],
+              "job_description": "Are you insatiably curious, deeply passionate about the realm of AI & applications, and ready to tackle complex challenges in a dynamic environment? If so, we invite you to join our team as a Cloud & AI Solution Engineer in AI Applications for commercial customers at Microsoft. Here, you'll be at the forefront of innovation, working on cutting-edge projects that leverage the latest technologies to drive meaningful impact. Join us and be part of a team that thrives on collaboration, creativity, and continuous learning.\n\nMicrosoft is transforming the developer experience for AI applications across the development lifecycle. With AI Foundry and seamless integration with Azure AI, we’re leading the way in Agenetic AI development, where AI agents streamline development and operations. As an AI Apps Solution Engineer, you’ll help customers adopt these innovations to boost productivity, drive innovation, and become AI-native.\n\nAs an AI Applications Solution Engineer (SE), you will play a pivotal role in helping enterprise AI developers unlock the full potential of Microsoft’s AI-powered stack across every stage of the development lifecycle. You’ll collaborate closely with engineering leaders and platform teams to accelerate AI Foundry, Azure AI, and Responsible AI, through hands-on engagements like Proof of Concepts, hackathons, and architecture workshops. This opportunity will allow you to accelerate your career growth, develop deep business acumen, hone your technical skills, and become adept at solution design and deployment. You’ll guide customers through secure, scalable solution design, influence technical decisions, and accelerate AI applications development into their deployment workflows. In summary, you’ll help customers modernize their applications and realize the full value of Microsoft’s AI platform, all while enjoying flexible work opportunities.\n\nAs a trusted technical advisor, you’ll guide customers through secure, scalable solution design, influence technical decisions, and accelerate AI applications and agents into their development workflows. In summary, you’ll help customers modernize their applications leveraging AI and realize the full value of Microsoft’s platform.\n\nMicrosoft’s mission is to empower every person and every organization on the planet to achieve more. As employees, we come together with a growth mindset, innovate to empower others, and collaborate to realize our shared goals. Each day we build on our values of respect, integrity, and accountability to create a culture of inclusion where everyone can thrive at work and beyond.\n\nResponsibilities\n• Drive technical sales with decision makers using demos and PoCs to influence solution design and enable production deployments.\n• Lead hands-on engagements—hackathons, code-with sessions, and architecture workshops—to accelerate adoption of Microsoft’s developer tools and cloud platforms.\n• Build trusted relationships with developers and platform leads, co-designing secure, scalable architectures and solutions\n• Resolve technical blockers and objections, collaborating with engineering to share insights and improve products.\n• Maintain deep expertise in AI Foundry & App architecture (Agentic AI framework, Semantic Kernel, Foundry SDK, Responsible AI) and App architecture/cloud native dev (APIs, containerization, microservices, event-driven, Python, Java or .NET).\n• Maintain and grow expertise in AI Management & Security (Gen AI Ops, Sentinel, orchestrator, monitoring).\n• Represent Microsoft through thought leadership in developer communities and customer forums\n\nOther\n• Embody our culture and values\n\nQualifications\n\nRequired/Minimum Qualifications:\n• 5+ years technical pre-sales or technical consulting experience \n• OR Bachelor's Degree in Computer Science, Information Technology, or related field AND 4+ years technical pre-sales or technical consulting experience \n• OR Master's Degree in Computer Science, Information Technology, or related field AND 3+ year(s) technical pre-sales or technical consulting experience \n• OR equivalent experience\n• Expert on full stack App architecture design / modernization and cloud native dev (e.g., APIs, containerization, microservices, event-driven, Python, Java, .NET)\n• Expert for AI & ML models (e.g., Agentic AI framework, AI Foundry, Semantic Kernel, Foundry SDK, Responsible AI, fine-tuning/inferencing, etc.)\n• Proven ability to lead technical engagements (e.g., hackathons, PoCs, MVPs) that drive production-scale outcomes.\n\nAdditional Or Preferred Qualifications\n• 6+ years technical pre-sales, technical consulting, or technology delivery, or related experience\n• OR equivalent experience\n• 4+ years experience with cloud and hybrid, or on premises infrastructure, architecture designs, migrations, industry standards, and/or technology management\n• Proficient on Agentic framework, AI Management & Security (e.g., Gen AI Ops, Sentinel, Responsible AI, orchestrator, monitoring)\n• Skilled with 1 or more frameworks, tools, languages (e.g., GitHub, Copilot Studio, VS Code, Jupyter, PyCharm, Node.js, Python, Java, C#, C++, AI Assisted Dev Tools)\n\nSolution Engineer Cloud & AI Apps: IC4 - The typical base pay range for this role across the U.S. is USD $106,400 - $203,600 per year. There is a different range applicable to specific work locations, within the San Francisco Bay Area and New York City metropolitan area, and the base pay range for this role in those locations is USD $137,600 - $222,600 per year.\n\nSolution Engineer Cloud & AI Apps: IC5 - The typical base pay range for this role across the U.S. is USD $130,900 - $251,900 per year. There is a different range applicable to specific work locations, within the San Francisco Bay Area and New York City metropolitan area, and the base pay range for this role in those locations is USD $165,600 - $272,300 per year.\n\nCertain roles may be eligible for benefits and other compensation. Find additional benefits and pay information here: US corporate pay information | Microsoft Careers\n\nMicrosoft will accept applications and processes offers for these roles on an ongoing basis.\n\n#MCAPSA\n\nMicrosoft is an equal opportunity employer. Consistent with applicable law, all qualified applicants will receive consideration for employment without regard to age, ancestry, citizenship, color, family or medical care leave, gender identity or expression, genetic information, immigration status, marital status, medical condition, national origin, physical or mental disability, political affiliation, protected veteran or military status, race, ethnicity, religion, sex (including pregnancy), sexual orientation, or any other characteristic protected by applicable local laws, regulations and ordinances. If you need assistance and/or a reasonable accommodation due to a disability during the application process, read more about requesting accommodations.",
+              "job_is_remote": false,
+              "job_posted_at": "23 days ago",
+              "job_posted_at_timestamp": 1753401600,
+              "job_posted_at_datetime_utc": "2025-07-25T00:00:00.000Z",
+              "job_location": "Washington, DC",
+              "job_city": "Washington",
+              "job_state": "District of Columbia",
+              "job_country": "US",
+              "job_latitude": 38.9071923,
+              "job_longitude": -77.0368707,
+              "job_benefits": [
+                "health_insurance"
+              ],
+              "job_google_link": "https://www.google.com/search?q=jobs&gl=us&hl=en&udm=8#vhid=vt%3D20/docid%3Dj0Ry6Lb1twymWJh8AAAAAA%3D%3D&vssid=jobs-detail-viewer",
+              "job_min_salary": 106000,
+              "job_max_salary": 272000,
+              "job_salary_period": "YEAR",
+              "job_highlights": {
+                "Qualifications": [
+                  "5+ years technical pre-sales or technical consulting experience ",
+                  "OR Bachelor's Degree in Computer Science, Information Technology, or related field AND 4+ years technical pre-sales or technical consulting experience ",
+                  "OR Master's Degree in Computer Science, Information Technology, or related field AND 3+ year(s) technical pre-sales or technical consulting experience ",
+                  "OR equivalent experience",
+                  "Expert on full stack App architecture design / modernization and cloud native dev (e.g., APIs, containerization, microservices, event-driven, Python, Java, .NET)",
+                  "Expert for AI & ML models (e.g., Agentic AI framework, AI Foundry, Semantic Kernel, Foundry SDK, Responsible AI, fine-tuning/inferencing, etc.)",
+                  "Proven ability to lead technical engagements (e.g., hackathons, PoCs, MVPs) that drive production-scale outcomes"
+                ],
+                "Benefits": [
+                  "Solution Engineer Cloud & AI Apps: IC4 - The typical base pay range for this role across the U.S. is USD $106,400 - $203,600 per year",
+                  "There is a different range applicable to specific work locations, within the San Francisco Bay Area and New York City metropolitan area, and the base pay range for this role in those locations is USD $137,600 - $222,600 per year",
+                  "Solution Engineer Cloud & AI Apps: IC5 - The typical base pay range for this role across the U.S. is USD $130,900 - $251,900 per year",
+                  "There is a different range applicable to specific work locations, within the San Francisco Bay Area and New York City metropolitan area, and the base pay range for this role in those locations is USD $165,600 - $272,300 per year",
+                  "Certain roles may be eligible for benefits and other compensation"
+                ],
+                "Responsibilities": [
+                  "As an AI Applications Solution Engineer (SE), you will play a pivotal role in helping enterprise AI developers unlock the full potential of Microsoft’s AI-powered stack across every stage of the development lifecycle",
+                  "You’ll collaborate closely with engineering leaders and platform teams to accelerate AI Foundry, Azure AI, and Responsible AI, through hands-on engagements like Proof of Concepts, hackathons, and architecture workshops",
+                  "This opportunity will allow you to accelerate your career growth, develop deep business acumen, hone your technical skills, and become adept at solution design and deployment",
+                  "You’ll guide customers through secure, scalable solution design, influence technical decisions, and accelerate AI applications development into their deployment workflows",
+                  "In summary, you’ll help customers modernize their applications and realize the full value of Microsoft’s AI platform, all while enjoying flexible work opportunities",
+                  "As a trusted technical advisor, you’ll guide customers through secure, scalable solution design, influence technical decisions, and accelerate AI applications and agents into their development workflows",
+                  "In summary, you’ll help customers modernize their applications leveraging AI and realize the full value of Microsoft’s platform",
+                  "Drive technical sales with decision makers using demos and PoCs to influence solution design and enable production deployments",
+                  "Lead hands-on engagements—hackathons, code-with sessions, and architecture workshops—to accelerate adoption of Microsoft’s developer tools and cloud platforms",
+                  "Build trusted relationships with developers and platform leads, co-designing secure, scalable architectures and solutions",
+                  "Resolve technical blockers and objections, collaborating with engineering to share insights and improve products",
+                  "Maintain deep expertise in AI Foundry & App architecture (Agentic AI framework, Semantic Kernel, Foundry SDK, Responsible AI) and App architecture/cloud native dev (APIs, containerization, microservices, event-driven, Python, Java or .NET)",
+                  "Maintain and grow expertise in AI Management & Security (Gen AI Ops, Sentinel, orchestrator, monitoring)",
+                  "Represent Microsoft through thought leadership in developer communities and customer forums"
+                ]
+              },
+              "job_onet_soc": "15111100",
+              "job_onet_job_zone": "5"
+            },
+            {
+              "job_id": "wONua71ZOfA16HixAAAAAA==",
+              "job_title": "Junior Natrium Software Engineer",
+              "employer_name": "Jobright.ai",
+              "employer_logo": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRc11c46XEF7nUag98qauGWM3tBuQH8ELcz8Cbg&s=0",
+              "employer_website": "https://jobright.ai",
+              "job_publisher": "LinkedIn",
+              "job_employment_type": "Full-time",
+              "job_employment_types": [
+                "FULLTIME"
+              ],
+              "job_apply_link": "https://www.linkedin.com/jobs/view/junior-natrium-software-engineer-at-jobright-ai-4285494146?utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+              "job_apply_is_direct": false,
+              "apply_options": [
+                {
+                  "publisher": "LinkedIn",
+                  "apply_link": "https://www.linkedin.com/jobs/view/junior-natrium-software-engineer-at-jobright-ai-4285494146?utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+                  "is_direct": false
+                },
+                {
+                  "publisher": "Beesla",
+                  "apply_link": "https://www.beesla.com/job/junior-software-engineer-brooksource-reston-va/146e23aa-a8cd-489d-97bd-e455eb96402d?utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+                  "is_direct": false
+                },
+                {
+                  "publisher": "Jobs Trabajo.org",
+                  "apply_link": "https://us.trabajo.org/job-1898-a71d456b8afa1467399da61d9585ac53?utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+                  "is_direct": false
+                }
+              ],
+              "job_description": "Jobright is an AI-powered career platform that helps job seekers discover the top opportunities in the US. We are NOT a staffing agency. Jobright does not hire directly for these positions. We connect you with verified openings from employers you can trust.\n\nJob Summary:\n\nBechtel Corporation is a global leader in engineering and construction, dedicated to delivering successful project outcomes. The Natrium Software Engineer will develop software applications to integrate information across EPC project delivery and client data systems, ensuring compliance with corporate methodologies and collaborating with cross-functional teams.\n\nResponsibilities:\n\n• Designs, develops, and implements one or more software applications, including complex applications, as part of the software development team\n\n• Interfaces with customers, creates new products, and improves existing systems and schemas\n\n• Estimates the software development work for new application development and maintenance of existing applications\n\n• Ensures Corporate Software Development Methodology Framework compliance\n\n• Identifies and implements technical innovations to improve work processes.\n\n• Designs database schemas, objects, including auditing\n\n• Works with identity management as needed to implement and configure application authentication.\n\n• Secures application access using role-based security.\n\n• May create CI/CD pipelines\n\n• Works closely with developers and users to assure that business requirements are accurately represented in the design and implementation phases\n\n• Designs and develops re-usable components to optimize productivity\n\n• Analyzes, maintains, and implements new, existing software applications and develops programming specifications from business requirements.\n\n• Analyzes user requirements directly into technical solutions at a unit or module level and analyzes existing code to ensure it meets functional requirements.\n\n• Creates and executes unit test cases for his/her scope of work\n\n• Works as a part of agile team and participates in agile ceremonies\n\n• May lead development of a medium size project or multiple small size applications\n\n• Assists in designing application architecture\n\n• Collaborates with cross-functional peers and leaders to deliver software projects\n\n• Understands and implements the application security concepts to include static, dynamic scan of code,\n\n• Proper logging, secure database query practices, API security etc.\n\nQualifications:\n\nRequired:\n\n• Bachelor’s degree in computer science, computer engineering, CIS, MIS or related technical field of study with 2-5 years of relevant experience; or 6-9 years of relevant work experience\n\n• US Citizen or legal resident\n\n• Experience in working in Microsoft SQL Server or other relational databases such as Oracle\n\n• Excellent organizational and communication skills\n\n• Ability to join an existing project and quickly become productive\n\n• Must possess good teamwork skills and work effectively with cross-functional, multi-disciplinary teams\n\n• Experience in writing robust APIs in .NET or .NET Framework\n\n• 2+ years of .NET C# development experience\n\n• 2+ years of RDBMS development experience\n\nPreferred:\n\n• Experience in source code management (e.g. Azure DevOps, Git, TFS)\n\n• Experience with Agile development methodologies\n\n• Experience working within Engineering, Contracts, Procurement and Construction or a strong Project-led understanding of cross-functional project delivery work processes\n\n• Experience implementing a program to ISO 27001 standards\n\n• 5+ years of .NET C# development experience\n\n• 5+ years of RDBMS development experience\n\nCompany:\n\nBechtel is a construction company that offers engineering, construction, and project management solutions to its customers. Founded in 1898, the company is headquartered in Reston, Virginia, USA, with a team of 10001+ employees. The company is currently Late Stage. Bechtel Corporation has a track record of offering H1B sponsorships.",
+              "job_is_remote": false,
+              "job_posted_at": "3 days ago",
+              "job_posted_at_timestamp": 1755129600,
+              "job_posted_at_datetime_utc": "2025-08-14T00:00:00.000Z",
+              "job_location": "Reston, VA",
+              "job_city": "Reston",
+              "job_state": "Virginia",
+              "job_country": "US",
+              "job_latitude": 38.9586307,
+              "job_longitude": -77.35700279999999,
+              "job_benefits": null,
+              "job_google_link": "https://www.google.com/search?q=jobs&gl=us&hl=en&udm=8#vhid=vt%3D20/docid%3DwONua71ZOfA16HixAAAAAA%3D%3D&vssid=jobs-detail-viewer",
+              "job_salary": null,
+              "job_min_salary": null,
+              "job_max_salary": null,
+              "job_salary_period": null,
+              "job_highlights": {
+                "Qualifications": [
+                  "Bachelor’s degree in computer science, computer engineering, CIS, MIS or related technical field of study with 2-5 years of relevant experience; or 6-9 years of relevant work experience",
+                  "US Citizen or legal resident",
+                  "Experience in working in Microsoft SQL Server or other relational databases such as Oracle",
+                  "Excellent organizational and communication skills",
+                  "Ability to join an existing project and quickly become productive",
+                  "Must possess good teamwork skills and work effectively with cross-functional, multi-disciplinary teams",
+                  "Experience in writing robust APIs in .NET or .NET Framework",
+                  "2+ years of .NET C# development experience",
+                  "2+ years of RDBMS development experience"
+                ],
+                "Responsibilities": [
+                  "The Natrium Software Engineer will develop software applications to integrate information across EPC project delivery and client data systems, ensuring compliance with corporate methodologies and collaborating with cross-functional teams",
+                  "Designs, develops, and implements one or more software applications, including complex applications, as part of the software development team",
+                  "Interfaces with customers, creates new products, and improves existing systems and schemas",
+                  "Estimates the software development work for new application development and maintenance of existing applications",
+                  "Ensures Corporate Software Development Methodology Framework compliance",
+                  "Identifies and implements technical innovations to improve work processes",
+                  "Designs database schemas, objects, including auditing",
+                  "Works with identity management as needed to implement and configure application authentication",
+                  "Secures application access using role-based security",
+                  "May create CI/CD pipelines",
+                  "Works closely with developers and users to assure that business requirements are accurately represented in the design and implementation phases",
+                  "Designs and develops re-usable components to optimize productivity",
+                  "Analyzes, maintains, and implements new, existing software applications and develops programming specifications from business requirements",
+                  "Analyzes user requirements directly into technical solutions at a unit or module level and analyzes existing code to ensure it meets functional requirements",
+                  "Creates and executes unit test cases for his/her scope of work",
+                  "Works as a part of agile team and participates in agile ceremonies",
+                  "May lead development of a medium size project or multiple small size applications",
+                  "Assists in designing application architecture",
+                  "Collaborates with cross-functional peers and leaders to deliver software projects",
+                  "Understands and implements the application security concepts to include static, dynamic scan of code,",
+                  "Proper logging, secure database query practices, API security etc"
+                ]
+              },
+              "job_onet_soc": "15113200",
+              "job_onet_job_zone": "4"
+            },
+            {
+              "job_id": "chRka7x4vQGchvd3AAAAAA==",
+              "job_title": "Engineer, Junior",
+              "employer_name": "AI Signal Research, Inc (ASRI)",
+              "employer_logo": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcREJk9TLiHOtCFJpSKxy8EAef76rVMpVI-6Oi2U&s=0",
+              "employer_website": null,
+              "job_publisher": "ZipRecruiter",
+              "job_employment_type": "Full-time",
+              "job_employment_types": [
+                "FULLTIME"
+              ],
+              "job_apply_link": "https://www.ziprecruiter.com/c/AI-Signal-Research,-Inc-(ASRI)/Job/Engineer,-Junior/-in-Patuxent,MD?jid=96c519efdd1a14f8&utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+              "job_apply_is_direct": false,
+              "apply_options": [
+                {
+                  "publisher": "ZipRecruiter",
+                  "apply_link": "https://www.ziprecruiter.com/c/AI-Signal-Research,-Inc-(ASRI)/Job/Engineer,-Junior/-in-Patuxent,MD?jid=96c519efdd1a14f8&utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+                  "is_direct": false
+                },
+                {
+                  "publisher": "Monster",
+                  "apply_link": "https://www.monster.com/job-openings/engineer-junior-patuxent-river-md--c5398f08-fc14-468c-918a-978e8e5c439f?utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+                  "is_direct": false
+                }
+              ],
+              "job_description": "Thank you for your interest in AI Signal Research, Inc. (ASRI). ASRI accepts applications for employment for current career opportunities only.\n\nAI Signal Research, Inc. (ASRI) is recruiting for the NAWCAD AID effort in Patuxent River, MD.\n\nEducation: Bachelor's degree or a qualifying substitution in an engineering or related technical discipline. Substitutions - Six (6) years additional relevant work experience or an Associate's degree plus four (4) years additional relevant work experience may be substituted for a Bachelor's degree.\n\nMonths/Years of Experience: See Education\n\nRequired Qualifications: U.S. Citizen. Must have a DoD security clearance.\n\nDuties: Applies engineering principles to investigate, analyze, plan, design, develop, implement, test, and evaluate hardware and software, including military weapon systems. Reviews and prepares engineering and technical analyses, reports, change proposals, and other technical documentation. Performs basic tasking with limited oversight. Supports tasks working with more senior engineers.\n\nComments: Compliance with health mandates as dictated by the contract may be required as a condition of employment.\n\nASRI offers the following Benefits package:\n• 401K Plan\n• Medical and Dental Insurance\n• Life Insurance\n• Disability Income\n• Educational Assistance\n• Direct Deposit\n• Cafeteria Plan\n• Vision\n\nDrug Free Workplace. Adherence to ASRI policy on drugs and alcohol is a condition of employment for all employees.\n\nAI Signal Research, Inc. (ASRI) wants all interested and qualified candidates to apply for employment opportunities. If you are an applicant with a disability who is unable to use our online tools to search and apply for jobs, please contact us by calling (in the U.S.) 1-256-551-0008 x329. Please indicate the specifics of the assistance needed. This option is reserved only for individuals with disabilities who are unable to use our online tools and is not intended for any other purpose.\n\nASRI is an equal opportunity and affirmative action employer-Veterans/Disabled and other protected categories.",
+              "job_is_remote": false,
+              "job_posted_at": "9 days ago",
+              "job_posted_at_timestamp": 1754611200,
+              "job_posted_at_datetime_utc": "2025-08-08T00:00:00.000Z",
+              "job_location": "Patuxent, MD",
+              "job_city": "Patuxent",
+              "job_state": "Maryland",
+              "job_country": "US",
+              "job_latitude": 38.539967,
+              "job_longitude": -76.747688,
+              "job_benefits": [
+                "health_insurance",
+                "dental_coverage"
+              ],
+              "job_google_link": "https://www.google.com/search?q=jobs&gl=us&hl=en&udm=8#vhid=vt%3D20/docid%3DchRka7x4vQGchvd3AAAAAA%3D%3D&vssid=jobs-detail-viewer",
+              "job_salary": null,
+              "job_min_salary": null,
+              "job_max_salary": null,
+              "job_salary_period": null,
+              "job_highlights": {
+                "Qualifications": [
+                  "Education: Bachelor's degree or a qualifying substitution in an engineering or related technical discipline",
+                  "Substitutions - Six (6) years additional relevant work experience or an Associate's degree plus four (4) years additional relevant work experience may be substituted for a Bachelor's degree",
+                  "Required Qualifications: U.S. Citizen",
+                  "Must have a DoD security clearance"
+                ],
+                "Benefits": [
+                  "ASRI offers the following Benefits package:",
+                  "401K Plan",
+                  "Medical and Dental Insurance",
+                  "Life Insurance",
+                  "Disability Income",
+                  "Educational Assistance",
+                  "Direct Deposit",
+                  "Cafeteria Plan",
+                  "Vision",
+                  "Drug Free Workplace"
+                ],
+                "Responsibilities": [
+                  "Duties: Applies engineering principles to investigate, analyze, plan, design, develop, implement, test, and evaluate hardware and software, including military weapon systems",
+                  "Reviews and prepares engineering and technical analyses, reports, change proposals, and other technical documentation",
+                  "Performs basic tasking with limited oversight",
+                  "Supports tasks working with more senior engineers"
+                ]
+              },
+              "job_onet_soc": "53401200",
+              "job_onet_job_zone": "2"
+            },
+            {
+              "job_id": "y2dmUWhjOZbrNdyIAAAAAA==",
+              "job_title": "Agentic AI Software Engineer",
+              "employer_name": "BOOZ ALLEN HAMILTON INTERNATIONAL (U.K.) LTD",
+              "employer_logo": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTtSyHUQkeuUuvn1vK5AYShAxb4chu2FQyMBqG6&s=0",
+              "employer_website": null,
+              "job_publisher": "LinkedIn",
+              "job_employment_type": "Part-time",
+              "job_employment_types": [
+                "PARTTIME"
+              ],
+              "job_apply_link": "https://www.linkedin.com/jobs/view/agentic-ai-software-engineer-at-booz-allen-hamilton-international-u-k-ltd-4275467349?utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+              "job_apply_is_direct": false,
+              "apply_options": [
+                {
+                  "publisher": "LinkedIn",
+                  "apply_link": "https://www.linkedin.com/jobs/view/agentic-ai-software-engineer-at-booz-allen-hamilton-international-u-k-ltd-4275467349?utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+                  "is_direct": false
+                },
+                {
+                  "publisher": "Ladders",
+                  "apply_link": "https://www.theladders.com/job/agentic-ai-software-engineer-booz-allen-hamilton-inc-washington-dc_82572734?utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic",
+                  "is_direct": false
+                }
+              ],
+              "job_description": "Remote Work\n\nHybrid\n\nJob Number\n\nR0223058\n\nLocation:\n\nWashington,DC,US\n\nShare Job Via\n\nShare\n• Facebook\n• LinkedIn\n• X\n• Email\n\nAgentic AI Software Engineer\n\nThe Opportunity\n\nAs an experienced engineer, you know that artificial intelligence (AI), particularly Agentic AI and Generative AI, is transforming the world, including every aspect of the way businesses are run. We need your technical knowledge and problem-solving abilities to identify and develop opportunities for the use of AI agents to solve real-world business and operational problems that will help Booz Allen and its clients execute missions of national importance.\n\nIn this role, you will design and build new agentic AI products and offerings, integrating them into specific client missions, both within the enterprise business context and in operational use cases. You will collaborate with a community of research and experimentation leaders, software and IT operations engineers, AI and ML experts, data scientists, solution architects, systems engineers, and product owners to deliver world-class solutions that can scale to production. Your advanced solutioning skills and extensive technical expertise will help drive innovation that is applicable across multiple client domains.\n\nJoin us. The world can’t wait.\n\nYou Have\n• 5+ years of experience in software engineering, including working on or leading teams to build customer-facing solutions and products\n• Experience in a collaborative, cross-functional team environment, consisting of security engineers, data scientists, machine learning engineers, and designers\n• Experience integrating LLMs or multi-modal models with applications or user interfaces\n• Experience building RAG systems with vector databases such as Pinecone, Weaviate, or ChromaDB, and embedding models\n• Experience with the development, deployment, or maintenance of AI agents or agentic solutions, including use of agentic frameworks such as LangGraph, LlamaIndex, or CrewAI\n• Ability to optimize LLM performance through strategic prompt design and engineering\n• Ability to distill complex technical concepts into easily understood summaries consumable by business leaders with a non-technical background\n• Ability to be curious, motivated, and passionate for experimentation and continuous learning at the forefront of emerging technologies, approaches, and architectures\n• Ability to obtain a Secret clearance\n• HS diploma or GED\n\nNice If You Have\n• 2+ years of experience working with modern AI capabilities in machine learning, including deep learning, and LLM frameworks\n• Experience with AI-assisted development such as Cursor, Windsurf, or Claude Code\n• Experience with Google agent-to-agent communication (A2A) and Model Context Protocol (MCP)\n• Experience with infrastructure-as-code or standup of cloud-based infrastructure and platform services, including AWS, Azure, or Google Cloud Platform\n• Experience working with federal clients\n• Possession of strong communication skills\n• Secret clearance\n\nClearance\n\nApplicants selected will be subject to a security investigation and may need to meet eligibility requirements for access to classified information.\n\nCompensation\n\nAt Booz Allen, we celebrate your contributions, provide you with opportunities and choices, and support your total well-being. Our offerings include health, life, disability, financial, and retirement benefits, as well as paid leave, professional development, tuition assistance, work-life programs, and dependent care. Our recognition awards program acknowledges employees for exceptional performance and superior demonstration of our values. Full-time and part-time employees working at least 20 hours a week on a regular basis are eligible to participate in Booz Allen’s benefit programs. Individuals that do not meet the threshold are only eligible for select offerings, not inclusive of health benefits. We encourage you to learn more about our total benefits by visiting the Resource page on our Careers site and reviewing Our Employee Benefits page.\n\nSalary at Booz Allen is determined by various factors, including but not limited to location, the individual’s particular combination of education, knowledge, skills, competencies, and experience, as well as contract-specific affordability and organizational requirements. The projected compensation range for this position is $86,800.00 to $198,000.00 (annualized USD). The estimate displayed represents the typical salary range for this position and is just one component of Booz Allen’s total compensation package for employees. This posting will close within 90 days from the Posting Date.\n\nIdentity Statement\n\nAs part of the application process, you are expected to be on camera during interviews and assessments. We reserve the right to take your picture to verify your identity and prevent fraud.\n\nWork Model\n\nOur people-first culture prioritizes the benefits of flexibility and collaboration, whether that happens in person or remotely.\n• If this position is listed as remote or hybrid, you’ll periodically work from a Booz Allen or client site facility.\n• If this position is listed as onsite, you’ll work with colleagues and clients in person, as needed for the specific role.\n\nCommitment to Non-Discrimination\n\nAll qualified applicants will receive consideration for employment without regard to disability, status as a protected veteran or any other status protected by applicable federal, state, local, or international law.",
+              "job_is_remote": false,
+              "job_posted_at": "24 days ago",
+              "job_posted_at_timestamp": 1753315200,
+              "job_posted_at_datetime_utc": "2025-07-24T00:00:00.000Z",
+              "job_location": "Washington, DC",
+              "job_city": "Washington",
+              "job_state": "District of Columbia",
+              "job_country": "US",
+              "job_latitude": 38.9071923,
+              "job_longitude": -77.0368707,
+              "job_benefits": [
+                "health_insurance"
+              ],
+              "job_google_link": "https://www.google.com/search?q=jobs&gl=us&hl=en&udm=8#vhid=vt%3D20/docid%3Dy2dmUWhjOZbrNdyIAAAAAA%3D%3D&vssid=jobs-detail-viewer",
+              "job_min_salary": 86800,
+              "job_max_salary": 198000,
+              "job_salary_period": "YEAR",
+              "job_highlights": {
+                "Qualifications": [
+                  "5+ years of experience in software engineering, including working on or leading teams to build customer-facing solutions and products",
+                  "Experience in a collaborative, cross-functional team environment, consisting of security engineers, data scientists, machine learning engineers, and designers",
+                  "Experience integrating LLMs or multi-modal models with applications or user interfaces",
+                  "Experience building RAG systems with vector databases such as Pinecone, Weaviate, or ChromaDB, and embedding models",
+                  "Experience with the development, deployment, or maintenance of AI agents or agentic solutions, including use of agentic frameworks such as LangGraph, LlamaIndex, or CrewAI",
+                  "Ability to optimize LLM performance through strategic prompt design and engineering",
+                  "Ability to distill complex technical concepts into easily understood summaries consumable by business leaders with a non-technical background",
+                  "Ability to be curious, motivated, and passionate for experimentation and continuous learning at the forefront of emerging technologies, approaches, and architectures",
+                  "Ability to obtain a Secret clearance",
+                  "HS diploma or GED",
+                  "2+ years of experience working with modern AI capabilities in machine learning, including deep learning, and LLM frameworks",
+                  "Experience with AI-assisted development such as Cursor, Windsurf, or Claude Code",
+                  "Experience with Google agent-to-agent communication (A2A) and Model Context Protocol (MCP)",
+                  "Experience with infrastructure-as-code or standup of cloud-based infrastructure and platform services, including AWS, Azure, or Google Cloud Platform",
+                  "Experience working with federal clients",
+                  "Possession of strong communication skills",
+                  "Secret clearance",
+                  "Applicants selected will be subject to a security investigation and may need to meet eligibility requirements for access to classified information"
+                ],
+                "Benefits": [
+                  "At Booz Allen, we celebrate your contributions, provide you with opportunities and choices, and support your total well-being",
+                  "Our offerings include health, life, disability, financial, and retirement benefits, as well as paid leave, professional development, tuition assistance, work-life programs, and dependent care",
+                  "Full-time and part-time employees working at least 20 hours a week on a regular basis are eligible to participate in Booz Allen’s benefit programs",
+                  "Salary at Booz Allen is determined by various factors, including but not limited to location, the individual’s particular combination of education, knowledge, skills, competencies, and experience, as well as contract-specific affordability and organizational requirements",
+                  "The projected compensation range for this position is $86,800.00 to $198,000.00 (annualized USD)"
+                ],
+                "Responsibilities": [
+                  "In this role, you will design and build new agentic AI products and offerings, integrating them into specific client missions, both within the enterprise business context and in operational use cases",
+                  "You will collaborate with a community of research and experimentation leaders, software and IT operations engineers, AI and ML experts, data scientists, solution architects, systems engineers, and product owners to deliver world-class solutions that can scale to production",
+                  "Your advanced solutioning skills and extensive technical expertise will help drive innovation that is applicable across multiple client domains",
+                  "If this position is listed as remote or hybrid, you’ll periodically work from a Booz Allen or client site facility",
+                  "If this position is listed as onsite, you’ll work with colleagues and clients in person, as needed for the specific role"
+                ]
+              },
+              "job_onet_soc": "15111100",
+              "job_onet_job_zone": "5"
+            }
+          ]
+        }
+      }
+    ],
+    "Function": [
+      {
+        "json": {
+          "title": "AI/Machine Learning Engineer, Junior - FAA",
+          "company": "COBEC INC",
+          "description": "Position: AI/Machine Learning Engineer, Junior - FAA\n\nLocation: Cobec site/Remote Site\n\nRemote Work Option: Yes\n\nFunction: Full Stack Software Developer\n\nLocation: Remote Site/Cobec Site - DC\n\nRemote Work Option: Yes\n\nSalary Range: $80- $130k\n\nSecurity Requirements\n\nMust be a US citizen or a legal resident for three of the past five years. Public Trust cannot be granted without meeting the residency requirement.\n\nMust meet eligibility requirements for a US Public Trust security clearance (moderate risk), including a soft credit check and criminal background check. Please refer to the criteria listed in 5 CFR 731.202 to understand the Public Trust suitability requirements.\n\nCulture\n\nCobec is consistently breaking the current mold for delivering services to our government clients. What does that mean? That means believing in a “people first” mentality, building high performance teams and empowering people to make informed decisions without going through a large bureaucratic system. Cobec values the well-being of employees and bestows tremendous trust in those people to negotiate work and non-work obligations. Cobec is where someone can bring their whole self to work and be themselves, never having to compromise their authenticity just to fit in. Lastly, we believe in the work we do, the goals and missions of our customers and the interpersonal relationships we have with clients, stakeholders and our people.\n\nValues and Expectations\n\nThe successful candidate for this role embodies the same values as Cobec. We realize experience is important, however; Cobec believes a person’s abilities and skills that align with our values (Relationships, Leadership, Passion, Accountability, Integrity, Innovation, Quality, Teamwork, Diversity, Commitment, & Respect) are the most important drivers for success in this role.\n\nIn addition to exhibiting our values, a successful candidate for this role is expected to be a high performer, organized, dynamic, and have a positive attitude.\n\nJob Summary\n\nWe are seeking a highly skilled and motivated AI/ML Engineer in a Full Stack Engineering environment to join our growing team. This position will be responsible for developing data modeling and artificial intelligence solutions to integrate with our application suite providing support to the financial sector of the FAA (Federal Aviation Administration). The successful candidate will be a part of a development team with a focus on building scalable and intelligent solutions. The candidate will need to be able to collaborate with stakeholders, customers, and internal developers at multiple levels.\n\nRelevant Experience\n\nAt least 2+ years of experience creating artificial intelligence systems and algorithms for AI/ML development. The position requires 2+ years of involvement in software development and experience in collaborating on software development projects. The successful candidate must have at least 2+ years of experience with relational databases and SQL/PGSQL. FAA Experience is preferred but not required.\n\nEssential Job Functions\n\nThe following duties are normal for this position. The omission of specific statements of duties does not exclude them from this position if the work is similar, related, and/or a logical assignment for this position. Other duties may be required and assigned.\n• Design, develop, and deploy AI/ML models that integrate seamlessly with enterprise level software platforms.\n• Build and integrate AI-driven solutions into business processes and participate in the full software development lifecycle.\n• Collaborate with software engineers, data scientists, and systems architects to embed AI functionality into existing and new applications.\n• Ability to work and communicate with stakeholders and other developers to troubleshoot and improve existing solutions\n• Perform diagnostic tests and develop debugging procedures.\n• Documenting processes and maintaining software development with tools.\n• Experience with relational databases and structured data sets.\n• Experience with AWS - EC2, RDS, EBS, VPC is a plus\n• Experience with Business Case Analysis is a plus\n\nEducation Requirements\n\nBachelor’s degree required, preferably in Computer Science, Information Systems, Engineering, Science or Math.\n\nMaster’s degree is a plus and may count as additional years of experience.\n\nSkills Requirements\n• Attention to detail, strong time management skills\n• Intermediate proficiency in several software technologies areas:\n• In-depth knowledge of machine learning frameworks\n• Familiarity with data structures, data modeling, and software architecture\n• Familiarity with NodeJS, PL/PGSQL, Python, Angular, TypeScript\n• Visual Studio, or other integrated design environment (IDE) experience (VS Code, etc...)\n• Intermediate proficiency in Software Configuration Management techniques and tools (GIT, Bitbucket, etc...).\n• Able to work in a team of developers to build production quality applications.\n• Experience with Relational Databases and to include writing SQL/PGSQL\n\nEEO\n\nCobec, Inc. is an Equal Opportunity Employer. Employment decisions are made without regard to race, color, religion, sex, age, sexual orientation, gender identity, national origin, disability, veteran status or any other status protected by federal, state and local law.\n\nEEO is the Law"
+        }
+      }
+    ],
+    "OPENAI Request": [
+      {
+        "json": {
+          "id": "gen-1755856613-ii9i0TgzY44jacHlcCie",
+          "provider": "AtlasCloud",
+          "model": "openai/gpt-oss-20b:free",
+          "object": "chat.completion",
+          "created": 1755856613,
+          "choices": [
+            {
+              "logprobs": null,
+              "finish_reason": "stop",
+              "native_finish_reason": "stop",
+              "index": 0,
+              "message": {
+                "role": "assistant",
+                "content": "**1. Summary (3–4 sentences)**  \nCobec Inc. is looking for a Junior AI/ML Engineer to join a full‑stack development team that builds scalable, AI‑driven solutions for the FAA’s financial sector. The role blends data‑modeling, algorithm design, and cloud deployment while partnering with software engineers, data scientists, and stakeholders to embed AI into enterprise applications. The engineer will write production‑grade code, integrate models on AWS, and contribute throughout the software lifecycle. Strong alignment with Cobec’s “people‑first” culture, commitment to quality, and a passion for innovation are essential.\n\n**2. Key Required Skills**  \n| Category | Specific Skill |\n|----------|----------------|\n| **Machine Learning** | Build & deploy predictive models, familiarity with ML frameworks (TensorFlow, PyTorch, Scikit‑Learn). |\n| **Full‑stack Development** | NodeJS, Python, Angular/TypeScript, Visual Studio or VS Code. |\n| **Databases & SQL** | Relational database design, PL/PGSQL, SQL queries, data modeling. |\n| **Cloud & DevOps** | AWS EC2, RDS, EBS, VPC basics; Git/Bitbucket version control; CI/CD concepts. |\n| **Communication & Collaboration** | Stakeholder engagement, code review, documentation, problem troubleshooting. |\n| **Personal Attributes** | Attention to detail, time management, teamwork, accountability, integrity. |\n| **Optional / Desired** | FAA experience, Business Case Analysis, Master’s degree. |\n\n**3. Tailored Cover Letter (Junior AI Engineer)**  \n\n```txt\n[Your Name]  \n[Address] | [City, ST ZIP] | [Phone] | [Email]  \n[LinkedIn] / [GitHub] | [Portfolio URL]  \n\n[Date]\n\nHiring Manager  \nCobec Inc.  \n[Office Address or Remote]  \n\nDear Hiring Manager,\n\nI am excited to apply for the Junior AI/ML Engineer position at Cobec Inc., as advertised. With over two years of hands‑on experience developing machine‑learning pipelines and a solid foundation in full‑stack web development, I am eager to contribute to your FAA projects that blend AI with enterprise software.\n\nDuring my recent role at [Previous Company], I engineered an end‑to‑end recommendation system using Python, TensorFlow, and PostgreSQL. I designed the data schema, wrote efficient PL/PGSQL queries, and deployed the model on AWS EC2, enabling a 15 % increase in processing speed for the company’s user analytics dashboard. Working cross‑functionally with front‑end developers (Angular & TypeScript), I ensured a seamless user experience and maintained a clear, testable codebase in VS Code.\n\nKey strengths that align with Cobec’s needs:\n\n* **Full‑stack expertise** – Comfortable in NodeJS, Python, Angular, and TypeScript, and adept at integrating ML modules into existing React/Angular applications.  \n* **Relational database mastery** – Proven ability to design scalable schemas, write complex SQL/PL‑PGSQL, and optimize query performance.  \n* **Cloud fluency** – Experience configuring RDS, VPC, and S3; I can extend this to EC2 and EBS as your projects evolve.  \n* **Version control & collaboration** – Contribute in a Git/Bitbucket workflow, pull requests, and continuous‑integration pipelines.  \n* **Culture fit** – I thrive in environments that prioritize people first, accountability, and open communication. My voluntary work with a local NGO’s data‑analytics team taught me to translate technical solutions into business value.\n\nI am drawn to Cobec’s commitment to empowering teams and delivering intelligent solutions to government stakeholders. I am confident that my blend of technical skills, problem‑solving mindset, and alignment with your values will enable me to contribute quickly to your FAA projects.\n\nThank you for considering my application. I look forward to the opportunity to discuss how my background can help Cobec continue to push innovation forward. \n\nSincerely,\n\n[Your Name]\n```\n\n*(Feel free to replace placeholders with your actual contact information, past employer, and specific project metrics to personalize the letter.)*",
+                "refusal": null,
+                "reasoning": "We need to summarize role, list key skills, and write tailored cover letter. Let's craft concise summary, list skills, cover letter with emphasis on relevant experience, values, etc. The user didn't provide personal details: we can assume applicant's name? We can craft placeholder like \"Dear Hiring Manager\". We can mention prior projects? Use generic. Let's produce.",
+                "reasoning_details": [
+                  {
+                    "type": "reasoning.text",
+                    "text": "We need to summarize role, list key skills, and write tailored cover letter. Let's craft concise summary, list skills, cover letter with emphasis on relevant experience, values, etc. The user didn't provide personal details: we can assume applicant's name? We can craft placeholder like \"Dear Hiring Manager\". We can mention prior projects? Use generic. Let's produce.",
+                    "format": "unknown",
+                    "index": 0
+                  }
+                ]
+              }
+            }
+          ],
+          "usage": {
+            "prompt_tokens": 1133,
+            "completion_tokens": 940,
+            "total_tokens": 2073
+          }
+        }
+      }
+    ],
+    "Code": [
+      {
+        "json": {
+          "summary": "Cobec Inc. is looking for a Junior AI/ML Engineer to join a full‑stack development team that builds scalable, AI‑driven solutions for the FAA’s financial sector. The role blends data‑modeling, algorithm design, and cloud deployment while partnering with software engineers, data scientists, and stakeholders to embed AI into enterprise applications. The engineer will write production‑grade code, integrate models on AWS, and contribute throughout the software lifecycle. Strong alignment with Cobec’s “people‑first” culture, commitment to quality, and a passion for innovation are essential.",
+          "skills": "| Category | Specific Skill |\n|----------|----------------|\n| **Machine Learning** | Build & deploy predictive models, familiarity with ML frameworks (TensorFlow, PyTorch, Scikit‑Learn). |\n| **Full‑stack Development** | NodeJS, Python, Angular/TypeScript, Visual Studio or VS Code. |\n| **Databases & SQL** | Relational database design, PL/PGSQL, SQL queries, data modeling. |\n| **Cloud & DevOps** | AWS EC2, RDS, EBS, VPC basics; Git/Bitbucket version control; CI/CD concepts. |\n| **Communication & Collaboration** | Stakeholder engagement, code review, documentation, problem troubleshooting. |\n| **Personal Attributes** | Attention to detail, time management, teamwork, accountability, integrity. |\n| **Optional / Desired** | FAA experience, Business Case Analysis, Master’s degree. |",
+          "coverLetter": "[Your Name]  \n[Address] | [City, ST ZIP] | [Phone] | [Email]  \n[LinkedIn] / [GitHub] | [Portfolio URL]  \n\n[Date]\n\nHiring Manager  \nCobec Inc.  \n[Office Address or Remote]  \n\nDear Hiring Manager,\n\nI am excited to apply for the Junior AI/ML Engineer position at Cobec Inc., as advertised. With over two years of hands‑on experience developing machine‑learning pipelines and a solid foundation in full‑stack web development, I am eager to contribute to your FAA projects that blend AI with enterprise software.\n\nDuring my recent role at [Previous Company], I engineered an end‑to‑end recommendation system using Python, TensorFlow, and PostgreSQL. I designed the data schema, wrote efficient PL/PGSQL queries, and deployed the model on AWS EC2, enabling a 15 % increase in processing speed for the company’s user analytics dashboard. Working cross‑functionally with front‑end developers (Angular & TypeScript), I ensured a seamless user experience and maintained a clear, testable codebase in VS Code.\n\nKey strengths that align with Cobec’s needs:\n\n* **Full‑stack expertise** – Comfortable in NodeJS, Python, Angular, and TypeScript, and adept at integrating ML modules into existing React/Angular applications.  \n* **Relational database mastery** – Proven ability to design scalable schemas, write complex SQL/PL‑PGSQL, and optimize query performance.  \n* **Cloud fluency** – Experience configuring RDS, VPC, and S3; I can extend this to EC2 and EBS as your projects evolve.  \n* **Version control & collaboration** – Contribute in a Git/Bitbucket workflow, pull requests, and continuous‑integration pipelines.  \n* **Culture fit** – I thrive in environments that prioritize people first, accountability, and open communication. My voluntary work with a local NGO’s data‑analytics team taught me to translate technical solutions into business value.\n\nI am drawn to Cobec’s commitment to empowering teams and delivering intelligent solutions to government stakeholders. I am confident that my blend of technical skills, problem‑solving mindset, and alignment with your values will enable me to contribute quickly to your FAA projects.\n\nThank you for considering my application. I look forward to the opportunity to discuss how my background can help Cobec continue to push innovation forward. \n\nSincerely,\n\n[Your Name]"
+        }
+      }
+    ],
+    "Save Results": [
+      {
+        "json": {
+          "summary": "Cobec Inc. is looking for a Junior AI/ML Engineer to join a full‑stack development team that builds scalable, AI‑driven solutions for the FAA’s financial sector. The role blends data‑modeling, algorithm design, and cloud deployment while partnering with software engineers, data scientists, and stakeholders to embed AI into enterprise applications. The engineer will write production‑grade code, integrate models on AWS, and contribute throughout the software lifecycle. Strong alignment with Cobec’s “people‑first” culture, commitment to quality, and a passion for innovation are essential.",
+          "skills": "| Category | Specific Skill |\n|----------|----------------|\n| **Machine Learning** | Build & deploy predictive models, familiarity with ML frameworks (TensorFlow, PyTorch, Scikit‑Learn). |\n| **Full‑stack Development** | NodeJS, Python, Angular/TypeScript, Visual Studio or VS Code. |\n| **Databases & SQL** | Relational database design, PL/PGSQL, SQL queries, data modeling. |\n| **Cloud & DevOps** | AWS EC2, RDS, EBS, VPC basics; Git/Bitbucket version control; CI/CD concepts. |\n| **Communication & Collaboration** | Stakeholder engagement, code review, documentation, problem troubleshooting. |\n| **Personal Attributes** | Attention to detail, time management, teamwork, accountability, integrity. |\n| **Optional / Desired** | FAA experience, Business Case Analysis, Master’s degree. |",
+          "coverLetter": "[Your Name]  \n[Address] | [City, ST ZIP] | [Phone] | [Email]  \n[LinkedIn] / [GitHub] | [Portfolio URL]  \n\n[Date]\n\nHiring Manager  \nCobec Inc.  \n[Office Address or Remote]  \n\nDear Hiring Manager,\n\nI am excited to apply for the Junior AI/ML Engineer position at Cobec Inc., as advertised. With over two years of hands‑on experience developing machine‑learning pipelines and a solid foundation in full‑stack web development, I am eager to contribute to your FAA projects that blend AI with enterprise software.\n\nDuring my recent role at [Previous Company], I engineered an end‑to‑end recommendation system using Python, TensorFlow, and PostgreSQL. I designed the data schema, wrote efficient PL/PGSQL queries, and deployed the model on AWS EC2, enabling a 15 % increase in processing speed for the company’s user analytics dashboard. Working cross‑functionally with front‑end developers (Angular & TypeScript), I ensured a seamless user experience and maintained a clear, testable codebase in VS Code.\n\nKey strengths that align with Cobec’s needs:\n\n* **Full‑stack expertise** – Comfortable in NodeJS, Python, Angular, and TypeScript, and adept at integrating ML modules into existing React/Angular applications.  \n* **Relational database mastery** – Proven ability to design scalable schemas, write complex SQL/PL‑PGSQL, and optimize query performance.  \n* **Cloud fluency** – Experience configuring RDS, VPC, and S3; I can extend this to EC2 and EBS as your projects evolve.  \n* **Version control & collaboration** – Contribute in a Git/Bitbucket workflow, pull requests, and continuous‑integration pipelines.  \n* **Culture fit** – I thrive in environments that prioritize people first, accountability, and open communication. My voluntary work with a local NGO’s data‑analytics team taught me to translate technical solutions into business value.\n\nI am drawn to Cobec’s commitment to empowering teams and delivering intelligent solutions to government stakeholders. I am confident that my blend of technical skills, problem‑solving mindset, and alignment with your values will enable me to contribute quickly to your FAA projects.\n\nThank you for considering my application. I look forward to the opportunity to discuss how my background can help Cobec continue to push innovation forward. \n\nSincerely,\n\n[Your Name]"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Workflow execution": {
+      "main": [
+        [
+          {
+            "node": "Get Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Rows": {
+      "main": [
+        [
+          {
+            "node": "Fetch Job from JSearch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Job from JSearch": {
+      "main": [
+        [
+          {
+            "node": "Function",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Function": {
+      "main": [
+        [
+          {
+            "node": "OPENAI Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OPENAI Request": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Save Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "d505ab6a-0f47-4f3e-bd69-36f63592402e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "90accfea16c5e7cb234925b633f596506d253997c9b7e0a61f32527694589e51"
+  },
+  "id": "vdUXR4qaG9rB4Pnk",
+  "tags": []
+}
