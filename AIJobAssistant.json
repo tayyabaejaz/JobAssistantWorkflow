@@ -67,7 +67,7 @@
           "parameters": [
             {
               "name": "X-RapidAPI-Key",
-              "value": "07957396ecmsh9d0318dcd39e85ep123cd4jsn713853f3e544"
+              "value": "={{$env.N8N_API_KEY}}"
             },
             {
               "name": "X-RapidAPI-Host",
